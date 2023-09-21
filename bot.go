@@ -135,7 +135,7 @@ func handleSumAll(event *linebot.Event) {
 	// }
 
 	// 就是請 ChatGPT 幫你總結
-	oriContext = fmt.Sprintf("上述許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的、不知名的名詞，但沒關係，請試著幫我按照時間排序，也嘗試列出使用者名稱、需求 `%s`", oriContext)
+	oriContext = fmt.Sprintf("下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的、不知名的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）Testman想要换早班\nTestman13B想換晚班\n\n10/24（二）\nEve 15A想要換晚班。（以上為範例，不要加到回覆內容中）如果你看不懂資料，可以列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序 `%s`", oriContext)
 	reply := gptGPT3CompleteContext(oriContext)
 
 	// 直接在群組中回覆訊息
