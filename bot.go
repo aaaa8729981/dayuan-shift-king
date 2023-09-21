@@ -139,12 +139,9 @@ func handleSumAll(event *linebot.Event) {
 	reply := gptGPT3CompleteContext(oriContext)
 
 	// 直接在群組中回覆訊息
-	if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：")).Do(); err != nil{
+	if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n" + reply)).Do(); err != nil {
     log.Print(err)
-    }
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do();err != nil{
-		log.Print(err)
-	}
+}
 }
 
 func handleListAll(event *linebot.Event) {
