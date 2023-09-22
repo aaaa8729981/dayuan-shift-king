@@ -78,17 +78,22 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
                     if event.ReplyToken != "" && message.QuotedMessageID != "" {
                         // 獲取回覆（quote）訊息的訊息
                         quotedMessageText := getQuotedMessageText(event.Source.GroupID, message.QuotedMessageID)
-                        // 组合回覆（quote）訊息和当前訊息
-                        combinedMessage := fmt.Sprintf("[%s]: %s (回覆 %s)", event.Source.UserID, message.Text, quotedMessageText)
-                        // 發送组合後的訊息
-                        if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(combinedMessage)).Do(); err != nil {
-                            log.Print(err)
-                        }
-                    } else {
-                        // 如果没有回覆（quote）訊息，只處理當前訊息
-                        handleStoreMsg(event, message.Text)
-                    }
-                }
+                        if quotedMessageText != "" {
+            // 组合引用消息和当前消息
+            combinedMessage := fmt.Sprintf("[%s]: %s (回覆 %s)", event.Source.UserID, message.Text, quotedMessageText)
+            // 发送组合后的消息
+            if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(combinedMessage)).Do(); err != nil {
+                log.Print(err)
+            }
+        } else {
+            // 如果引用消息文本为空，只处理当前消息
+            handleStoreMsg(event, message.Text)
+        }
+    } else {
+        // 如果没有引用消息，只处理当前消息
+        handleStoreMsg(event, message.Text)
+    }
+}
 
 
 			// Handle only on Sticker message
