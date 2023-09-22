@@ -55,7 +55,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 						handleGPT(GPT_GPT4_Complete, event, message.Text)
 					}
 				} else if strings.Contains(message.Text, ":draw") {
-					// New feature.
+          // Handle :draw
 					if IsRedemptionEnabled() {
 						if stickerRedeemable {
 							handleGPT(GPT_Draw, event, message.Text)
@@ -68,30 +68,45 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 						handleGPT(GPT_Draw, event, message.Text)
 					}
 				} else if strings.EqualFold(message.Text, ":list_all") && isGroupEvent(event) {
+          // Handle :list_all
 					handleListAll(event)
 				} else if strings.EqualFold(message.Text, ":sum_all") && isGroupEvent(event) {
+          // Handle :sum_all
 					handleSumAll(event)
 				} else if isGroupEvent(event) {
-					// 如果聊天機器人在群組中，開始儲存訊息。
-					handleStoreMsg(event, message.Text)
-				}
+                  // 如果聊天機器人在群組中，检查是否有引用消息
+                    if event.ReplyToken != "" && message.QuotedMessageID != "" {
+                        // 獲取回覆（quote）訊息的訊息
+                        quotedMessageText := getQuotedMessageText(event.Source.GroupID, message.QuotedMessageID)
+                        // 组合回覆（quote）訊息和当前訊息
+                        combinedMessage := fmt.Sprintf("[%s]: %s (回覆 %s)", event.Source.UserID, message.Text, quotedMessageText)
+                        // 發送组合後的訊息
+                        if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(combinedMessage)).Do(); err != nil {
+                            log.Print(err)
+                        }
+                    } else {
+                        // 如果没有回覆（quote）訊息，只處理當前訊息
+                        handleStoreMsg(event, message.Text)
+                    }
+                }
+
 
 			// Handle only on Sticker message
-			case *linebot.StickerMessage:
-				var kw string
-				for _, k := range message.Keywords {
-					kw = kw + "," + k
-				}
+			// case *linebot.StickerMessage:
+			// 	var kw string
+			// 	for _, k := range message.Keywords {
+			// 		kw = kw + "," + k
+			// 	}
 
-				log.Println("Sticker: PID=", message.PackageID, " SID=", message.StickerID)
-				if IsRedemptionEnabled() {
-					if message.PackageID == RedeemStickerPID && message.StickerID == RedeemStickerSID {
-						stickerRedeemable = true
-						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("你的賦能功能啟動了！")).Do(); err != nil {
-							log.Print(err)
-						}
-					}
-				}
+			// 	log.Println("Sticker: PID=", message.PackageID, " SID=", message.StickerID)
+			// 	if IsRedemptionEnabled() {
+			// 		if message.PackageID == RedeemStickerPID && message.StickerID == RedeemStickerSID {
+			// 			stickerRedeemable = true
+			// 			if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("你的賦能功能啟動了！")).Do(); err != nil {
+			// 				log.Print(err)
+			// 			}
+			// 		}
+			// 	}
 
 				if isGroupEvent(event) {
 					// 在群組中，一樣紀錄起來不回覆。
@@ -135,7 +150,7 @@ func handleSumAll(event *linebot.Event) {
 	// }
 
 	// 就是請 ChatGPT 幫你總結
-	oriContext = fmt.Sprintf("下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的、不知名的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）Testman想要换早班\nTestman13B想換晚班\n\n10/24（二）\nEve 15A想要換晚班。（以上為範例，不要加到回覆內容中）如果你看不懂資料，可以列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序 `%s`", oriContext)
+	oriContext = fmt.Sprintf("下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的、不知名的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）Testman想要换早班\nTestman13B想換晚班\n\n10/24（二）\nEve 15A想要換晚班。（以上為範例，不要加到回覆內容中）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序 `%s`", oriContext)
 	reply := gptGPT3CompleteContext(oriContext)
 
 	// 直接在群組中回覆訊息
