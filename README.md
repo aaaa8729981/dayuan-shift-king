@@ -106,3 +106,56 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+func handleSumAll(event *linebot.Event) {
+	// Scroll through all the messages in the chat group (in chronological order).
+	oriContext := ""
+	q := summaryQueue.ReadGroupInfo(getGroupID(event))
+
+	// Create a map to store quoted messages and their authors
+	quotedMessages := make(map[string][]string)
+
+	for _, m := range q {
+		// [xxx]: 他講了什麼... 時間
+		oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
+
+		// Check if this message is a quoted message
+		if m.QuotedMessageID != "" {
+			if authors, exists := quotedMessages[m.QuotedMessageID]; exists {
+				authors = append(authors, m.UserName)
+				quotedMessages[m.QuotedMessageID] = authors
+			} else {
+				quotedMessages[m.QuotedMessageID] = []string{m.UserName}
+			}
+		}
+	}
+
+	// 取得使用者暱稱
+	userName := event.Source.UserID
+	userProfile, err := bot.GetProfile(event.Source.UserID).Do()
+	if err == nil {
+		userName = userProfile.DisplayName
+	}
+
+	// 添加引用消息的作者信息
+	for quotedMessageID, authors := range quotedMessages {
+		quotedMessageText := fmt.Sprintf("（回覆 %s）", strings.Join(authors, "、"))
+		oriContext = strings.Replace(oriContext, quotedMessageID, quotedMessageText, -1)
+	}
+
+	// 将用户名包括在消息文本中
+	oriContext = fmt.Sprintf("[%s]: %s", userName, oriContext)
+
+	// 訊息內先回，再來總結。
+	// if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("好的，總結文字已經發給您了"+userName)).Do(); err != nil {
+	// 	log.Print(err)
+	// }
+
+	// 就是請 ChatGPT 幫你總結
+	oriContext = fmt.Sprintf("下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的、不知名的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）OOO想要换早班\nOOO13B想換晚班\n\n10/24（二）\nXXX 15A想要換晚班。（以上為範例，不要加到回覆內容中）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序 `%s`", oriContext)
+	reply := gptGPT3CompleteContext(oriContext)
+
+	// 直接在群組中回覆訊息
+	if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n" + reply)).Do(); err != nil {
+		log.Print(err)
+	}
+}

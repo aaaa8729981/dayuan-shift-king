@@ -55,7 +55,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 						handleGPT(GPT_GPT4_Complete, event, message.Text)
 					}
 				} else if strings.Contains(message.Text, ":draw") {
-          // Handle :draw
+					// New feature.
 					if IsRedemptionEnabled() {
 						if stickerRedeemable {
 							handleGPT(GPT_Draw, event, message.Text)
@@ -68,50 +68,30 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 						handleGPT(GPT_Draw, event, message.Text)
 					}
 				} else if strings.EqualFold(message.Text, ":list_all") && isGroupEvent(event) {
-          // Handle :list_all
 					handleListAll(event)
 				} else if strings.EqualFold(message.Text, ":sum_all") && isGroupEvent(event) {
-          // Handle :sum_all
 					handleSumAll(event)
 				} else if isGroupEvent(event) {
-                  // 如果聊天機器人在群組中，检查是否有引用消息
-                    if event.ReplyToken != "" && message.QuotedMessageID != "" {
-                        // 獲取回覆（quote）訊息的訊息
-                        quotedMessageText := getQuotedMessageText(event.Source.GroupID, message.QuotedMessageID)
-                        if quotedMessageText != "" {
-            // 组合引用消息和当前消息
-            combinedMessage := fmt.Sprintf("[%s]: %s (回覆 %s)", event.Source.UserID, message.Text, quotedMessageText)
-            // 发送组合后的消息
-            if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(combinedMessage)).Do(); err != nil {
-                log.Print(err)
-            }
-        } else {
-            // 如果引用消息文本为空，只处理当前消息
-            handleStoreMsg(event, message.Text)
-        }
-    } else {
-        // 如果没有引用消息，只处理当前消息
-        handleStoreMsg(event, message.Text)
-    }
-}
-
+					// 如果聊天機器人在群組中，開始儲存訊息。
+					handleStoreMsg(event, message.Text)
+				}
 
 			// Handle only on Sticker message
-			// case *linebot.StickerMessage:
-			// 	var kw string
-			// 	for _, k := range message.Keywords {
-			// 		kw = kw + "," + k
-			// 	}
+			case *linebot.StickerMessage:
+				var kw string
+				for _, k := range message.Keywords {
+					kw = kw + "," + k
+				}
 
-			// 	log.Println("Sticker: PID=", message.PackageID, " SID=", message.StickerID)
-			// 	if IsRedemptionEnabled() {
-			// 		if message.PackageID == RedeemStickerPID && message.StickerID == RedeemStickerSID {
-			// 			stickerRedeemable = true
-			// 			if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("你的賦能功能啟動了！")).Do(); err != nil {
-			// 				log.Print(err)
-			// 			}
-			// 		}
-			// 	}
+				log.Println("Sticker: PID=", message.PackageID, " SID=", message.StickerID)
+				if IsRedemptionEnabled() {
+					if message.PackageID == RedeemStickerPID && message.StickerID == RedeemStickerSID {
+						stickerRedeemable = true
+						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("你的賦能功能啟動了！")).Do(); err != nil {
+							log.Print(err)
+						}
+					}
+				}
 
 				if isGroupEvent(event) {
 					// 在群組中，一樣紀錄起來不回覆。
@@ -134,9 +114,23 @@ func handleSumAll(event *linebot.Event) {
 	// Scroll through all the messages in the chat group (in chronological order).
 	oriContext := ""
 	q := summaryQueue.ReadGroupInfo(getGroupID(event))
+
+	// Create a map to store quoted messages and their authors
+	quotedMessages := make(map[string][]string)
+
 	for _, m := range q {
 		// [xxx]: 他講了什麼... 時間
 		oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
+
+		// Check if this message is a quoted message
+		if m.QuotedMessageID != "" {
+			if authors, exists := quotedMessages[m.QuotedMessageID]; exists {
+				authors = append(authors, m.UserName)
+				quotedMessages[m.QuotedMessageID] = authors
+			} else {
+				quotedMessages[m.QuotedMessageID] = []string{m.UserName}
+			}
+		}
 	}
 
 	// 取得使用者暱稱
@@ -146,7 +140,13 @@ func handleSumAll(event *linebot.Event) {
 		userName = userProfile.DisplayName
 	}
 
-  // 将用户名包括在消息文本中
+	// 添加引用消息的作者信息
+	for quotedMessageID, authors := range quotedMessages {
+		quotedMessageText := fmt.Sprintf("（回覆 %s）", strings.Join(authors, "、"))
+		oriContext = strings.Replace(oriContext, quotedMessageID, quotedMessageText, -1)
+	}
+
+	// 将用户名包括在消息文本中
 	oriContext = fmt.Sprintf("[%s]: %s", userName, oriContext)
 
 	// 訊息內先回，再來總結。
@@ -155,13 +155,13 @@ func handleSumAll(event *linebot.Event) {
 	// }
 
 	// 就是請 ChatGPT 幫你總結
-	oriContext = fmt.Sprintf("下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的、不知名的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）Testman想要换早班\nTestman13B想換晚班\n\n10/24（二）\nEve 15A想要換晚班。（以上為範例，不要加到回覆內容中）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序 `%s`", oriContext)
+	oriContext = fmt.Sprintf("下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的、不知名的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）OOO想要换早班\nOOO13B想換晚班\n\n10/24（二）\nXXX 15A想要換晚班。（以上為範例，不要加到回覆內容中）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序 `%s`", oriContext)
 	reply := gptGPT3CompleteContext(oriContext)
 
 	// 直接在群組中回覆訊息
 	if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n" + reply)).Do(); err != nil {
-    log.Print(err)
-}
+		log.Print(err)
+	}
 }
 
 func handleListAll(event *linebot.Event) {
@@ -223,11 +223,18 @@ func handleStoreMsg(event *linebot.Event, message string) {
 		userName = userProfile.DisplayName
 	}
 
+  	// Store QuotedMessageID if available
+	quotedMessageID := ""
+	if message != nil && message.QuotedMessage != nil {
+		quotedMessageID = message.QuotedMessage.ID
+	}
+
 	// event.Source.GroupID 就是聊天群組的 ID，並且透過聊天群組的 ID 來放入 Map 之中。
 	m := MsgDetail{
 		MsgText:  message,
 		UserName: userName,
 		Time:     time.Now(),
+    QuotedMessageID: quotedMessageID, // 儲存 QuotedMessageID
 	}
 	summaryQueue.AppendGroupInfo(getGroupID(event), m)
 }
