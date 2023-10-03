@@ -120,11 +120,11 @@ func handleSumAll(event *linebot.Event) {
 	}
 
 	// 取得使用者暱稱
-	userName := event.Source.UserID
-	userProfile, err := bot.GetProfile(event.Source.UserID).Do()
-	if err == nil {
-		userName = userProfile.DisplayName
-	}
+	// userName := event.Source.UserID
+	// userProfile, err := bot.GetProfile(event.Source.UserID).Do()
+	// if err == nil {
+	// 	userName = userProfile.DisplayName
+	// }
 
 	// 訊息內先回，再來總結。
 	// if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("好的，總結文字已經發給您了"+userName)).Do(); err != nil {
