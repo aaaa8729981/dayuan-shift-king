@@ -136,9 +136,7 @@ func handleSumAll(event *linebot.Event) {
 	reply := gptGPT3CompleteContext(oriContext)
 
 	// 因為 ChatGPT 可能會很慢，所以這邊後來用 SendMsg 來發送私訊給使用者。
-	if _, err = bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(reply)).Do(); err != nil {
-		log.Print(err)
-	}
+	_, _ = bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(reply)).Do()
 }
 
 func handleListAll(event *linebot.Event) {
