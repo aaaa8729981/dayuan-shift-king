@@ -119,6 +119,19 @@ func handleSumAll(event *linebot.Event) {
 		oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
 	}
 
+  	// 取得使用者暱稱
+	userName := ""
+	userID := event.Source.UserID
+	userProfile, err := bot.GetProfile(userID).Do()
+	if err == nil {
+		userName = userProfile.DisplayName
+	} else {
+		fmt.Printf("Error fetching user profile: %v\n", err)
+	}
+
+	// 記錄使用者暱稱在console log裡
+	fmt.Printf("UserID: %s, UserName: %s\n", userID, userName)
+
 	// 取得使用者暱稱
 	// userName := event.Source.UserID
 	// userProfile, err := bot.GetProfile(event.Source.UserID).Do()
