@@ -48,6 +48,39 @@ func gptCompleteContext(ori string, model string) (ret string) {
 	return ret
 }
 
+func gptChat(ori string, systemMessage string) (ret string, err error) {
+	// Get the context.
+	ctx := context.Background()
+
+  	// Create a slice of ChatCompletionMessage to construct the conversation.
+	conversation := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: systemMessage,
+		},
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: ori,
+		},
+	}
+
+	// Create a ChatCompletionRequest using the conversation.
+	req := openai.ChatCompletionRequest{
+		Model:    "gpt-3.5-turbo-16k-0613",
+		Messages: conversation,
+	}
+
+	resp, err := client.CreateChatCompletion(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	// Extract the content from the response.
+	ret = resp.Choices[0].Message.Content
+	return ret, nil
+}
+
+
 // Create image by DALL-E 2
 func gptImageCreate(prompt string) (string, error) {
 	ctx := context.Background()

@@ -69,7 +69,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				} else if strings.EqualFold(message.Text, ":list_all") && isGroupEvent(event) {
 					handleListAll(event)
-				} else if strings.EqualFold(message.Text, "648599") && isGroupEvent(event) {
+				} else if strings.Contains(message.Text, "648599") && isGroupEvent(event) {
 					handleSumAll(event)
 				} else if isGroupEvent(event) {
 					// 如果聊天機器人在群組中，開始儲存訊息。
@@ -131,9 +131,18 @@ func handleSumAll(event *linebot.Event) {
 	// 	log.Print(err)
 	// }
 
-	// 就是請 ChatGPT 幫你總結
-	oriContext = fmt.Sprintf("下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）範例先生想要换早班\n範例小姐13B想換晚班\n\n10/24（二）\n範例先生 15A想要換晚班。（範例請勿加到回覆內容中）（內容一定會包含日期，請協助格式整理。一個訊息中常包含多個日期，請將日期分開）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序 `%s`", oriContext)
-	reply := gptGPT3CompleteContext(oriContext)
+  	// 將ChatGPT的系统角色內容加入 oriContext
+	systemMessage := "下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）[範例姓名]想要换早班\n[範例姓名]13B想換晚班\n\n10/24（二）\n[範例姓名]15A想要換晚班。（範例請勿加到回覆內容中）（內容一定會包含日期、姓名，請協助格式整理。一個訊息中常包含多個日期，請將日期分開）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序"
+  oriContext = fmt.Sprintf("%s %s", systemMessage, oriContext)
+
+	// 使用 chatgpt.go裡面的 ChatGPT 处理 oriContext，同時傳送systemMessage
+	reply, err := gptChat(oriContext, systemMessage)
+	if err != nil {
+		fmt.Printf("ChatGPT error: %v\n", err)
+		// 處理錯誤
+		return
+	}
+
 
 	// 因為 ChatGPT 可能會很慢，所以這邊後來用 SendMsg 來發送私訊給使用者。
 	_, _ = bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(reply)).Do()
