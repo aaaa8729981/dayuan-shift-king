@@ -106,50 +106,55 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-func handleSumAll(event *linebot.Event) {
-	// Scroll through all the messages in the chat group (in chronological order).
-	oriContext := ""
-	userDisplayNames := make(map[string]string) // 用于存储每个用户的 DisplayName
+func callbackHandler(w http.ResponseWriter, r *http.Request) {
+	events, err := bot.ParseRequest(r)
 
-	q := summaryQueue.ReadGroupInfo(getGroupID(event))
-	for _, m := range q {
-		// [xxx]: 他講了什麼... 時間
-		oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
-
-		// 获取消息的用户ID
-		userID := m.UserID
-
-		// 如果用户ID尚未在 userDisplayNames 中记录，则获取用户的 DisplayName 并记录
-		if _, ok := userDisplayNames[userID]; !ok {
-			userProfile, err := bot.GetProfile(userID).Do()
-			if err == nil {
-				userDisplayNames[userID] = userProfile.DisplayName
-			} else {
-				fmt.Printf("Error fetching user profile for UserID %s: %v\n", userID, err)
-			}
-		}
-	}
-
-	// 打印每个用户的 DisplayName
-	for userID, displayName := range userDisplayNames {
-		fmt.Printf("UserID: %s, UserName: %s\n", userID, displayName)
-	}
-
-	// 继续处理 oriContext 和调用 gptChat，将 userDisplayNames 和消息一起传递给 gptChat 函数
-	// ...
-
-	// 将ChatGPT的系统角色内内容加入 oriContext
-	systemMessage := "下面的許多訊息是一個排班工作的交換工作时间群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）[範例姓名]想要换早班\n[範例姓名]13B想換晚班\n\n10/24（二）\n[範例姓名]15A想要換晚班。（範例請勿加到回覆內容中）（內容一定會包含日期、姓名，請協助格式整理。一個訊息中常包含多個日期，請將日期分開）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序"
-	oriContext = fmt.Sprintf("%s %s", systemMessage, oriContext)
-
-	// 使用 chatgpt.go 里面的 ChatGPT 处理 oriContext，同时传送 systemMessage
-	reply, err := gptChat(oriContext, systemMessage)
 	if err != nil {
-		fmt.Printf("ChatGPT error: %v\n", err)
-		// 处理错误
+		if err == linebot.ErrInvalidSignature {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		return
 	}
 
-	// 因为 ChatGPT 可能会很慢，所以这边后来用 SendMsg 来发送私讯给使用者。
-	_, _ = bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(reply)).Do()
+	for _, event := range events {
+		if event.Type == linebot.EventTypeMessage {
+			switch message := event.Message.(type) {
+			// Handle only on text message
+			case *linebot.TextMessage:
+				// 如果是群組訊息或房間訊息
+				if isGroupEvent(event) {
+					// 獲取用戶的顯示名稱
+					userProfile, err := bot.GetProfile(event.Source.UserID).Do()
+					if err != nil {
+						fmt.Printf("Error fetching user profile: %v\n", err)
+						return
+					}
+					userDisplayName := userProfile.DisplayName
+
+					// 儲存用戶的顯示名稱以及訊息
+					handleStoreMsg(event, userDisplayName, message.Text)
+				}
+
+				// 其他處理訊息的邏輯不變...
+			}
+		}
+	}
 }
+
+func handleStoreMsg(event *linebot.Event, userDisplayName, message string) {
+	// event.Source.GroupID 就是聊天群組的 ID，並且透過聊天群組的 ID 來放入 Map 之中。
+	m := MsgDetail{
+		MsgText:  message,
+		UserName: userDisplayName,
+		Time:     time.Now(),
+	}
+	summaryQueue.AppendGroupInfo(getGroupID(event), m)
+}
+
+func isGroupEvent(event *linebot.Event) bool {
+	return event.Source.GroupID != "" || event.Source.RoomID != ""
+}
+
+// 當前的 getGroupID 函式不需要更改

@@ -27,6 +27,19 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			switch message := event.Message.(type) {
 			// Handle only on text message
 			case *linebot.TextMessage:
+        // 如果是在群組或多人聊天
+        if isGroupEvent(event) {
+          //獲取使用者的顯示名稱
+          userProfile, err := bot.GetProfile(event.Source.UserID).Do()
+          if err != nil{
+            fmt.Printf("Error fetching user profile: %v\n", err)
+            return
+          }
+          userDisplayName := userProfile.DisplayName
+
+          //儲存使用者顯示名稱以及訊息
+          handleStoreMsg(event, userDisplayName, message.Text)
+        }
 				// Directly to ChatGPT
 				if strings.Contains(message.Text, ":gpt") {
 					// New feature.
@@ -73,7 +86,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					handleSumAll(event)
 				} else if isGroupEvent(event) {
 					// 如果聊天機器人在群組中，開始儲存訊息。
-					handleStoreMsg(event, message.Text)
+					handleStoreMsg(event, m.UserName, message.Text)
 				}
 
 			// Handle only on Sticker message
@@ -96,7 +109,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				if isGroupEvent(event) {
 					// 在群組中，一樣紀錄起來不回覆。
 					outStickerResult := fmt.Sprintf("貼圖訊息: %s ", kw)
-					handleStoreMsg(event, outStickerResult)
+					handleStoreMsg(event, outStickerResult, "")
 				} else {
 					outStickerResult := fmt.Sprintf("貼圖訊息: %s, pkg: %s kw: %s  text: %s", message.StickerID, message.PackageID, kw, message.Text)
 
@@ -113,45 +126,24 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 func handleSumAll(event *linebot.Event) {
 	// Scroll through all the messages in the chat group (in chronological order).
 	oriContext := ""
-  	userDisplayNames := make(map[string]string) // 用于存储每个用户的 DisplayName
-
 	q := summaryQueue.ReadGroupInfo(getGroupID(event))
 	for _, m := range q {
 		// [xxx]: 他講了什麼... 時間
 		oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
-
-    // 获取消息的用户ID
-    userID := m.UserName
-
-    // 如果用户ID尚未在 userDisplayNames 中记录，则获取用户的 DisplayName 并记录
-    if _, ok := userDisplayNames[userID]; !ok {
-			userProfile, err := bot.GetProfile(userID).Do()
-			if err == nil {
-				userDisplayNames[userID] = userProfile.DisplayName
-			} else {
-				fmt.Printf("Error fetching user profile for UserID %s: %v\n", userID, err)
-			}
-    }
 	}
-
-  	// 打印每个用户的 DisplayName
-	for userID, displayName := range userDisplayNames {
-		fmt.Printf("UserID: %s, UserName: %s\n", userID, displayName)
-	}
-
 
   	// 取得使用者暱稱
-	// userName := ""
-	// userID := event.Source.UserID
-	// userProfile, err := bot.GetProfile(userID).Do()
-	// if err == nil {
-	// 	userName = userProfile.DisplayName
-	// } else {
-	// 	fmt.Printf("Error fetching user profile: %v\n", err)
-	// }
+	userName := ""
+	userID := event.Source.UserID
+	userProfile, err := bot.GetProfile(userID).Do()
+	if err == nil {
+		userName = userProfile.DisplayName
+	} else {
+		fmt.Printf("Error fetching user profile: %v\n", err)
+	}
 
 	// 記錄使用者暱稱在console log裡
-	// fmt.Printf("UserID: %s, UserName: %s\n", userID, userName)
+	fmt.Printf("UserID: %s, UserName: %s\n", userID, userName)
 
   	// 打印 oriContext 到console log
 	fmt.Println("oriContext:", oriContext)
@@ -237,7 +229,7 @@ func handleRedeemRequestMsg(event *linebot.Event) {
 	}
 }
 
-func handleStoreMsg(event *linebot.Event, message string) {
+func handleStoreMsg(event *linebot.Event, userDispalyName, message string) {
 	// Get user display name. (It is nick name of the user define.)
 	userName := event.Source.UserID
 	userProfile, err := bot.GetProfile(event.Source.UserID).Do()
