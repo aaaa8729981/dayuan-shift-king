@@ -107,62 +107,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 func handleSumAll(event *linebot.Event) {
-    // Scroll through all the messages in the chat group (in chronological order).
-    oriContext := ""
-    q := summaryQueue.ReadGroupInfo(getGroupID(event))
-    for _, m := range q {
-        // [xxx]: 他講了什麼... 時間
-        oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
-    }
+	// Scroll through all the messages in the chat group (in chronological order).
+	oriContext := ""
+	userDisplayNames := make(map[string]string) // 用于存储每个用户的 DisplayName
 
-    // 将系统消息添加到 oriContext 中
-    systemMessage := "下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）[範例姓名]想要换早班\n[範例姓名]13B想換晚班\n\n10/24（二）\n[範例姓名]15A想要換晚班。（範例請勿加到回覆內容中）（內容一定會包含日期、姓名，請協助格式整理。一個訊息中常包含多個日期，請將日期分開）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序"
+	q := summaryQueue.ReadGroupInfo(getGroupID(event))
+	for _, m := range q {
+		// [xxx]: 他講了什麼... 時間
+		oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
 
-    // 使用 chatgpt.go 裡面的 ChatGPT 处理 oriContext，同时传递 systemMessage
-    reply, err := gptChat(oriContext, systemMessage)
-    if err != nil {
-        fmt.Printf("ChatGPT error: %v\n", err)
-        // 處理錯誤
-        return
-    }
+		// 获取消息的用户ID
+		userID := m.UserID
 
-    // 因为 ChatGPT 可能会很慢，所以这边后来用 SendMsg 来发送私訊给用户。
-    _, _ = bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(reply)).Do()
-}
+		// 如果用户ID尚未在userDisplayNames中记录，则获取用户的DisplayName并记录
+		if _, ok := userDisplayNames[userID]; !ok {
+			userProfile, err := bot.GetProfile(userID).Do()
+			if err == nil {
+				userDisplayNames[userID] = userProfile.DisplayName
+			} else {
+				fmt.Printf("Error fetching user profile for UserID %s: %v\n", userID, err)
+			}
+		}
+	}
 
-
-
-
-func gptChat(ori string, systemMessage string) (ret string, err error) {
-    // Get the context.
-    ctx := context.Background()
-
-    // Create a slice of ChatCompletionMessage to construct the conversation.
-    conversation := []openai.ChatCompletionMessage{
-        {
-            Role:    openai.ChatMessageRoleSystem,
-            Content: systemMessage,
-        },
-        {
-            Role:    openai.ChatMessageRoleUser,
-            Content: ori,
-        },
-    }
-
-    // Create a ChatCompletionRequest using the conversation.
-    req := openai.ChatCompletionRequest{
-        Model:    "gpt-3.5-turbo-16k-0613",
-        Messages: conversation,
-    }
-
-    resp, err := client.CreateChatCompletion(ctx, req)
-    if err != nil {
-        return "", err
-    }
-
-    // Extract the content from the response.
-    ret = resp.Choices[0].Message.Content
-    return ret, nil
-}
-
-
+	// 打印每个用户的DisplayName
+	for userID, displayName := range userDisplayNames {
+		fmt.Printf("UserID: %s, UserName: %s\n", userID, displayName)
+	}
