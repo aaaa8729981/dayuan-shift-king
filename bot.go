@@ -86,7 +86,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					handleSumAll(event)
 				} else if isGroupEvent(event) {
 					// 如果聊天機器人在群組中，開始儲存訊息。
-					handleStoreMsg(event, m.UserName, message.Text)
+					handleStoreMsg(event, event.Source.UserID, message.Text)
 				}
 
 			// Handle only on Sticker message
