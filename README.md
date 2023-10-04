@@ -119,7 +119,7 @@ func handleSumAll(event *linebot.Event) {
 		// 获取消息的用户ID
 		userID := m.UserID
 
-		// 如果用户ID尚未在userDisplayNames中记录，则获取用户的DisplayName并记录
+		// 如果用户ID尚未在 userDisplayNames 中记录，则获取用户的 DisplayName 并记录
 		if _, ok := userDisplayNames[userID]; !ok {
 			userProfile, err := bot.GetProfile(userID).Do()
 			if err == nil {
@@ -130,7 +130,26 @@ func handleSumAll(event *linebot.Event) {
 		}
 	}
 
-	// 打印每个用户的DisplayName
+	// 打印每个用户的 DisplayName
 	for userID, displayName := range userDisplayNames {
 		fmt.Printf("UserID: %s, UserName: %s\n", userID, displayName)
 	}
+
+	// 继续处理 oriContext 和调用 gptChat，将 userDisplayNames 和消息一起传递给 gptChat 函数
+	// ...
+
+	// 将ChatGPT的系统角色内内容加入 oriContext
+	systemMessage := "下面的許多訊息是一個排班工作的交換工作时间群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）[範例姓名]想要换早班\n[範例姓名]13B想換晚班\n\n10/24（二）\n[範例姓名]15A想要換晚班。（範例請勿加到回覆內容中）（內容一定會包含日期、姓名，請協助格式整理。一個訊息中常包含多個日期，請將日期分開）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序"
+	oriContext = fmt.Sprintf("%s %s", systemMessage, oriContext)
+
+	// 使用 chatgpt.go 里面的 ChatGPT 处理 oriContext，同时传送 systemMessage
+	reply, err := gptChat(oriContext, systemMessage)
+	if err != nil {
+		fmt.Printf("ChatGPT error: %v\n", err)
+		// 处理错误
+		return
+	}
+
+	// 因为 ChatGPT 可能会很慢，所以这边后来用 SendMsg 来发送私讯给使用者。
+	_, _ = bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(reply)).Do()
+}

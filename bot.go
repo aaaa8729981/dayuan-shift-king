@@ -113,33 +113,48 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 func handleSumAll(event *linebot.Event) {
 	// Scroll through all the messages in the chat group (in chronological order).
 	oriContext := ""
-  userDisplayNames := make(map[string]string) // 用于存储每个用户的 DisplayName
+  	userDisplayNames := make(map[string]string) // 用于存储每个用户的 DisplayName
 
 	q := summaryQueue.ReadGroupInfo(getGroupID(event))
 	for _, m := range q {
 		// [xxx]: 他講了什麼... 時間
 		oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
-	}
 
-  	// 获取消息的用户ID
-		userID := m.UserID
+    // 获取消息的用户ID
+    userID := m.UserName
 
-    // 如果用户ID尚未在userDisplayNames中记录，则获取用户的DisplayName并记录
-		if _, ok := userDisplayNames[userID]; !ok {
+    // 如果用户ID尚未在 userDisplayNames 中记录，则获取用户的 DisplayName 并记录
+    if _, ok := userDisplayNames[userID]; !ok {
 			userProfile, err := bot.GetProfile(userID).Do()
 			if err == nil {
 				userDisplayNames[userID] = userProfile.DisplayName
 			} else {
 				fmt.Printf("Error fetching user profile for UserID %s: %v\n", userID, err)
 			}
-		}
+    }
 	}
 
-	// 打印每个用户的DisplayName
+  	// 打印每个用户的 DisplayName
 	for userID, displayName := range userDisplayNames {
 		fmt.Printf("UserID: %s, UserName: %s\n", userID, displayName)
 	}
 
+
+  	// 取得使用者暱稱
+	// userName := ""
+	// userID := event.Source.UserID
+	// userProfile, err := bot.GetProfile(userID).Do()
+	// if err == nil {
+	// 	userName = userProfile.DisplayName
+	// } else {
+	// 	fmt.Printf("Error fetching user profile: %v\n", err)
+	// }
+
+	// 記錄使用者暱稱在console log裡
+	// fmt.Printf("UserID: %s, UserName: %s\n", userID, userName)
+
+  	// 打印 oriContext 到console log
+	fmt.Println("oriContext:", oriContext)
 
 
 	// 取得使用者暱稱
