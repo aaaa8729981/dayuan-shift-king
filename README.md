@@ -106,55 +106,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-func callbackHandler(w http.ResponseWriter, r *http.Request) {
-	events, err := bot.ParseRequest(r)
+	// 取得使用者暱稱
+	// userName := event.Source.UserID
+	// userProfile, err := bot.GetProfile(event.Source.UserID).Do()
+	// if err == nil {
+	// 	userName = userProfile.DisplayName
+	// }
 
-	if err != nil {
-		if err == linebot.ErrInvalidSignature {
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-		return
-	}
+ // 如果是在群組或多人聊天
+if isGroupEvent(event) {
+    // 獲取使用者的顯示名稱
+    userProfile, err := bot.GetProfile(event.Source.UserID).Do()
+    if err != nil {
+        fmt.Printf("Error fetching user profile: %v\n", err)
+        return
+    }
+    userDisplayName := userProfile.DisplayName
 
-	for _, event := range events {
-		if event.Type == linebot.EventTypeMessage {
-			switch message := event.Message.(type) {
-			// Handle only on text message
-			case *linebot.TextMessage:
-				// 如果是群組訊息或房間訊息
-				if isGroupEvent(event) {
-					// 獲取用戶的顯示名稱
-					userProfile, err := bot.GetProfile(event.Source.UserID).Do()
-					if err != nil {
-						fmt.Printf("Error fetching user profile: %v\n", err)
-						return
-					}
-					userDisplayName := userProfile.DisplayName
-
-					// 儲存用戶的顯示名稱以及訊息
-					handleStoreMsg(event, userDisplayName, message.Text)
-				}
-
-				// 其他處理訊息的邏輯不變...
-			}
-		}
-	}
+    // 儲存使用者顯示名稱以及訊息
+    handleStoreMsg(event, userDisplayName, message.Text)
 }
-
-func handleStoreMsg(event *linebot.Event, userDisplayName, message string) {
-	// event.Source.GroupID 就是聊天群組的 ID，並且透過聊天群組的 ID 來放入 Map 之中。
-	m := MsgDetail{
-		MsgText:  message,
-		UserName: userDisplayName,
-		Time:     time.Now(),
-	}
-	summaryQueue.AppendGroupInfo(getGroupID(event), m)
-}
-
-func isGroupEvent(event *linebot.Event) bool {
-	return event.Source.GroupID != "" || event.Source.RoomID != ""
-}
-
-// 當前的 getGroupID 函式不需要更改
