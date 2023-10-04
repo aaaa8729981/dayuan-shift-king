@@ -30,7 +30,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
         // 如果是在群組或多人聊天
         if isGroupEvent(event) {
           //獲取使用者的顯示名稱
-          userName := event.Source.UserID
+          userName := ""
           userProfile, err := bot.GetProfile(event.Source.UserID).Do()
           if err != nil{
             fmt.Printf("Error fetching user profile: %v\n", err)

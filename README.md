@@ -126,3 +126,13 @@ if isGroupEvent(event) {
     // 儲存使用者顯示名稱以及訊息
     handleStoreMsg(event, userDisplayName, message.Text)
 }
+
+
+userID := event.Source.UserID
+userName := ""
+userProfile, err := bot.GetProfile(event.Source.UserID).Do()
+if err != nil{
+    fmt.Printf("Error fetching user profile: %v\n", err)
+    return
+}
+userName = userProfile.DisplayName
