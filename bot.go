@@ -132,6 +132,10 @@ func handleSumAll(event *linebot.Event) {
 	// 記錄使用者暱稱在console log裡
 	fmt.Printf("UserID: %s, UserName: %s\n", userID, userName)
 
+  	// 打印 oriContext 到console log
+	fmt.Println("oriContext:", oriContext)
+
+
 	// 取得使用者暱稱
 	// userName := event.Source.UserID
 	// userProfile, err := bot.GetProfile(event.Source.UserID).Do()
