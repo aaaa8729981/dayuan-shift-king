@@ -13,13 +13,13 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
-	"os"
+  "fmt"
+  "log"
+  "net/http"
+  "os"
 
-	"github.com/line/line-bot-sdk-go/v7/linebot"
-	"github.com/sashabaranov/go-openai"
+  "github.com/line/line-bot-sdk-go/v7/linebot"
+  "github.com/sashabaranov/go-openai"
 )
 
 var bot *linebot.Client
@@ -34,42 +34,42 @@ const RedeemStickerSID = "10856"
 type GPT_ACTIONS int
 
 const (
-	GPT_Complete      GPT_ACTIONS = 0
-	GPT_Draw          GPT_ACTIONS = 1
-	GPT_Whister       GPT_ACTIONS = 2
-	GPT_GPT4_Complete GPT_ACTIONS = 3
+  GPT_Complete      GPT_ACTIONS = 0
+  GPT_Draw          GPT_ACTIONS = 1
+  GPT_Whister       GPT_ACTIONS = 2
+  GPT_GPT4_Complete GPT_ACTIONS = 3
 )
 
 func main() {
-	stickerRedeemable = false
-	var err error
+  stickerRedeemable = false
+  var err error
 
-	// Enable new feature (YES, default no)
-	enableRedeem = os.Getenv("REDEEM_ENABLE")
+  // Enable new feature (YES, default no)
+  enableRedeem = os.Getenv("REDEEM_ENABLE")
 
-	//  If DABTASE_URL is preset, create PostGresSQL; otherwise, create Mem DB.
-	pSQL := os.Getenv("DATABASE_URL")
-	if pSQL != "" {
-		summaryQueue = NewPGSql(pSQL)
-	} else {
-		summaryQueue = NewMemDB()
-	}
+  //  If DABTASE_URL is preset, create PostGresSQL; otherwise, create Mem DB.
+  pSQL := os.Getenv("DATABASE_URL")
+  if pSQL != "" {
+    summaryQueue = NewPGSql(pSQL)
+  } else {
+    summaryQueue = NewMemDB()
+  }
 
-	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
-	log.Println("Bot:", bot, " err:", err)
+  bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
+  log.Println("Bot:", bot, " err:", err)
 
-	port := os.Getenv("PORT")
-	apiKey := os.Getenv("ChatGptToken")
+  port := os.Getenv("PORT")
+  apiKey := os.Getenv("ChatGptToken")
 
-	if apiKey != "" {
-		client = openai.NewClient(apiKey)
-	}
+  if apiKey != "" {
+    client = openai.NewClient(apiKey)
+  }
 
-	http.HandleFunc("/callback", callbackHandler)
-	addr := fmt.Sprintf(":%s", port)
-	http.ListenAndServe(addr, nil)
+  http.HandleFunc("/callback", callbackHandler)
+  addr := fmt.Sprintf(":%s", port)
+  http.ListenAndServe(addr, nil)
 }
 
 func IsRedemptionEnabled() bool {
-	return enableRedeem == "YES"
+  return enableRedeem == "YES"
 }
