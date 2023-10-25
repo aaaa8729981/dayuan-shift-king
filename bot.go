@@ -8,7 +8,149 @@ import (
 	"time"
 
 	"github.com/line/line-bot-sdk-go/v7/linebot"
+  "os"
+  "time"
 )
+
+// 定義一個全局變量用於記錄上次觸發sumall的時間
+var lastSumAllTriggerTime time.Time
+
+// 定義常變量：發送pushMessage功能的時間
+const (
+  WorkMessageHour1   = os.Getenv("WORKMESSAGEHOUR1") //屆時設為11
+  WorkMessageMinute1 = os.Getenv("WORKMESSAGEMINUTE1") //屆時設為0
+  WorkMessageHour2   = os.Getenv("WORKMESSAGEHOUR2") //屆時設為20
+  WorkMessageMinute2 = os.Getenv("WORKMESSAGEHOUR2") //屆時設為30
+)
+
+// 從環境變量獲取時間設定值
+workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
+if err != nil {
+  log.Println("無法解析WORKMESSAGEHOUR1環境變量", err)
+  workMessageHour1 = WorkMessageHour1
+}
+
+workMessageMinute1, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE1"))
+if err != nil {
+  log.Println("無法解析WORKMESSAGEMINUTE1環境變量", err)
+  workMessageMinute1 = WorkMessageMinute1
+
+workMessageHour2, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR2"))
+if err != nil {
+  log.Println("無法解析WORKMESSAGEHOUR2環境變量", err)
+  workMessageHour2 = WorkMessageHour2
+}
+
+workMessageMinute2, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE2"))
+if err != nil {
+  log.Println("無法解析WORKMESSAGEMINUTE2環境變量", err)
+  workMessageMinute2 = WorkMessageMinute2
+}
+
+
+func main() {
+  // 定義：透過groupID取得指定群組成員列表(userID)
+  groupID := os.Getenv("LINEBOTGROUP_ID")
+  memberIDs, err := getGroupUserIDs(groupID)
+  if err != nil {
+      log.Println("取得群組成員列表失败:", err)
+  }
+  // 定時觸發 SumAll
+  go triggerSumAllDaily()
+  // 定时触发 "上班囉" 消息
+  go triggerWorkMessage()
+
+}
+
+// 取得指定群組成員的用戶id(userID)
+func getGroupUserIDs(groupID string) ([]string, error) {
+    continuationToken := ""
+    var memberIDs []string
+
+    for {
+        resp, err := bot.GetGroupMemberIDs(groupID, continuationToken).Do()
+        if err != nil {
+            return nil, err
+        }
+
+        memberIDs = append(memberIDs, resp.MemberIDs...)
+        continuationToken = resp.Next
+        if continuationToken == "" {
+            break
+        }
+    }
+
+    return memberIDs, nil
+}
+
+  // 函数用于计算等待的时间
+  func calculateWaitTime(targetTime time.Time) time.Duration {
+    now := time.Now()
+    if now.After(targetTime) {
+      targetTime = targetTime.Add(24 * time.Hour)
+    }
+    return targetTime.Sub(now)
+  }
+
+  // 函数用于发送消息
+  func sendMessage(bot *linebot.Client, groupID string, message string) error {
+    _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
+    return err
+  }
+
+  
+  func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int) {
+    for {
+        now := time.Now()
+        weekday := now.Weekday()
+
+        // 仅在星期一到星期五执行
+        if weekday >= time.Monday && weekday <= time.Friday {
+          targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, time.Local)
+          targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, time.Local)
+
+          timeToWait1 := calculateWaitTime(targetTime1)
+          timeToWait2 := calculateWaitTime(targetTime2)
+
+          // 选择等待时间较短的时间来触发消息
+          var timeToWait time.Duration
+          if timeToWait1 < timeToWait2 {
+              timeToWait = timeToWait1
+          } else {
+              timeToWait = timeToWait2
+          }
+
+          // 等待时间后触发消息
+          <-time.After(timeToWait)
+          sendMessage(bot, groupID, "上班囉")
+
+          // 设置定时触发 SumAll 的计时器
+          go triggerSumAll(bot)
+      }
+    }
+  }
+
+
+
+// 觸發sumall(在發送pushMessage之後的30分鐘)
+func triggerSumAll() {
+    count, err := strconv.Atoi(os.Getenv("SUMALL_TRIGGER_COUNT"))
+    if err != nil {
+        log.Println("無法解析SUMALL_TRIGGER_COUNT環境變量", err)
+        return
+    }
+
+    for i := 0; i < count; i++ {
+        time.Sleep(30 * time.Minute)
+
+        // 触发 SumAll
+        handleSumAll(event)
+
+        // 更新上次触发 SumAll 的时间
+        lastSumAllTriggerTime = time.Now()
+    }
+}
+
 
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := bot.ParseRequest(r)
@@ -69,7 +211,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				} else if strings.EqualFold(message.Text, ":list_all") && isGroupEvent(event) {
 					handleListAll(event)
-				} else if strings.EqualFold(message.Text, "648599") && isGroupEvent(event) {
+				} else if strings.EqualFold(message.Text, "sum_all") && isGroupEvent(event) {
 					handleSumAll(event)
 				} else if isGroupEvent(event) {
 					// 如果聊天機器人在群組中，開始儲存訊息。
@@ -121,9 +263,16 @@ func handleSumAll(event *linebot.Event) {
 
 	// 取得使用者暱稱
 	userName := event.Source.UserID
-	userProfile, err := bot.GetProfile(event.Source.UserID).Do()
-	if err == nil {
-		userName = userProfile.DisplayName
+  // 取得群組ID
+  groupID := event.Source.GroupID
+  // 取得指定群组成員的個人資料，在這裡的userName其實是webhook裡面的event.Source.UserID（一次只能查一個）
+  profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
+  if err != nil {
+      // 處理錯誤
+      log.Println("取得指定群組成員個人資料錯誤:", err)
+  } else {
+      // 使用 profile 中的信息，例如 profile.DisplayName
+      userName := profile.DisplayName
 	}
 
 	// 訊息內先回，再來總結。
@@ -132,11 +281,12 @@ func handleSumAll(event *linebot.Event) {
 	// }
 
 	// 就是請 ChatGPT 幫你總結
-	oriContext = fmt.Sprintf("下面的許多訊息是一個排班工作的交換工作時間群組，內容會包含想換班的時間日期、上班時間等資訊，雖然包含許多特定的名詞，但沒關係。請嘗試依照這種範例方式整理資料:10/23（一）範例先生想要换早班\n範例小姐13B想換晚班\n\n10/24（二）\n範例先生 15A想要換晚班。（範例請勿加到回覆內容中）（內容一定會包含日期，請協助格式整理。一個訊息中常包含多個日期，請將日期分開）如果你看不懂資料，請列在最後面，不要嘗試修改或捏造。資料請依照日期先後排序 `%s`", oriContext)
+  // 尚未完成：在oriContext中放入群組清單
+	oriContext = fmt.Sprintf("下面的許多訊息是一個工作的群組，請將以下內容統整，原則上依照內容裡的時間排序。 `%s`", oriContext)
 	reply := gptGPT3CompleteContext(oriContext)
 
-	// 因為 ChatGPT 可能會很慢，所以這邊後來用 SendMsg 來發送私訊給使用者。
-	if _, err = bot.PushMessage(event.Source.UserID, linebot.NewTextMessage(reply)).Do(); err != nil {
+	// 在群組中使用ReplyToken回覆訊息
+	if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n" + reply)).Do(); err != nil {
 		log.Print(err)
 	}
 }
