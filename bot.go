@@ -10,56 +10,52 @@ import (
   "github.com/line/line-bot-sdk-go/v7/linebot"
   "os"
   "time"
+  "strconv"
 )
 
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 
-// 定義常變量：發送pushMessage功能的時間
-const (
-  WorkMessageHour1   = os.Getenv("WORKMESSAGEHOUR1") //屆時設為11
-  WorkMessageMinute1 = os.Getenv("WORKMESSAGEMINUTE1") //屆時設為0
-  WorkMessageHour2   = os.Getenv("WORKMESSAGEHOUR2") //屆時設為20
-  WorkMessageMinute2 = os.Getenv("WORKMESSAGEMINUTE2") //屆時設為30
-)
-
-// 從環境變量獲取時間設定值
-workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
-if err != nil {
-  log.Println("無法解析WORKMESSAGEHOUR1環境變量", err)
-  workMessageHour1 = WorkMessageHour1
-}
-
-workMessageMinute1, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE1"))
-if err != nil {
-  log.Println("無法解析WORKMESSAGEMINUTE1環境變量", err)
-  workMessageMinute1 = WorkMessageMinute1
-
-workMessageHour2, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR2"))
-if err != nil {
-  log.Println("無法解析WORKMESSAGEHOUR2環境變量", err)
-  workMessageHour2 = WorkMessageHour2
-}
-
-workMessageMinute2, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE2"))
-if err != nil {
-  log.Println("無法解析WORKMESSAGEMINUTE2環境變量", err)
-  workMessageMinute2 = WorkMessageMinute2
-}
-
-
-func main() {
+func main() {  
   // 定義：透過groupID取得指定群組成員列表(userID)
   groupID := os.Getenv("LINEBOTGROUP_ID")
   memberIDs, err := getGroupUserIDs(groupID)
   if err != nil {
       log.Println("取得群組成員列表失败:", err)
   }
+
+  // 从环境变量获取时间设置值
+  workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
+  if err != nil {
+      log.Println("无法解析WORKMESSAGEHOUR1环境变量", err)
+      workMessageHour1 = 11
+    }
+  workMessageMinute1, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE1"))
+  if err != nil {
+      log.Println("无法解析WORKMESSAGEMINUTE1环境变量", err)
+      workMessageMinute1 = 0
+  }
+
+  workMessageHour2, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR2"))
+  if err != nil {
+      log.Println("无法解析WORKMESSAGEHOUR2环境变量", err)
+      workMessageHour2 = 20
+  }
+
+  workMessageMinute2, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE2"))
+  if err != nil {
+      log.Println("无法解析WORKMESSAGEMINUTE2环境变量", err)
+      workMessageMinute2 = 30
+  }
+
+  // 调用其他函数，并传递环境变量的值作为参数
+  triggerWorkMessage(workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2)
+  
+  
   // 定時觸發 SumAll
   go triggerSumAllDaily()
   // 定时触发 "上班囉" 消息
   go triggerWorkMessage()
-
 }
 
 // 取得指定群組成員的用戶id(userID)
@@ -99,12 +95,12 @@ func getGroupUserIDs(groupID string) ([]string, error) {
   }
 
   
-  func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int) {
-    for {
-        now := time.Now()
-        weekday := now.Weekday()
+      func triggerWorkMessage(workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int) {
+        for {
+            now := time.Now()
+            weekday := now.Weekday()
 
-        // 仅在星期一到星期五执行
+        // 僅在星期一到星期五执行
         if weekday >= time.Monday && weekday <= time.Friday {
           targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, time.Local)
           targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, time.Local)
@@ -125,7 +121,7 @@ func getGroupUserIDs(groupID string) ([]string, error) {
           sendMessage(bot, groupID, "上班囉")
 
           // 设置定时触发 SumAll 的计时器
-          go triggerSumAll(bot)
+          go triggerSumAll(event)
       }
     }
   }
@@ -133,22 +129,22 @@ func getGroupUserIDs(groupID string) ([]string, error) {
 
 
 // 觸發sumall(在發送pushMessage之後的30分鐘)
-func triggerSumAll() {
-    count, err := strconv.Atoi(os.Getenv("SUMALL_TRIGGER_COUNT"))
-    if err != nil {
-        log.Println("無法解析SUMALL_TRIGGER_COUNT環境變量", err)
-        return
-    }
+func triggerSumAll(event *linebot.Event) {
+  count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
+  if err != nil {
+    log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
+    return
+  }
 
-    for i := 0; i < count; i++ {
-        time.Sleep(30 * time.Minute)
+  for i := 0; i < count; i++ {
+    time.Sleep(30 * time.Minute)
 
-        // 触发 SumAll
-        handleSumAll(event)
+    // 触发 SumAll
+    handleSumAll(event)
 
-        // 更新上次触发 SumAll 的时间
-        lastSumAllTriggerTime = time.Now()
-    }
+    // 更新上次触发 SumAll 的时间
+    lastSumAllTriggerTime = time.Now()
+  }
 }
 
 
@@ -282,7 +278,7 @@ func handleSumAll(event *linebot.Event) {
 
   // 就是請 ChatGPT 幫你總結
   // 尚未完成：在oriContext中放入群組清單
-  oriContext = fmt.Sprintf("下面的許多訊息是一個工作的群組，請將以下內容統整，原則上依照內容裡的時間排序。 `%s`", oriContext)
+  oriContext = fmt.Sprintf("下面的许多讯息是一个工作的群组，请将以下内容统整，原则上依照内容里的时间排序。請用繁體中文回覆，如果內容無法理解，不需統整沒關係，直接列出即可。請不要捏造內容\n成员: %s\n\n%s", userName, oriContext)
   reply := gptGPT3CompleteContext(oriContext)
 
   // 在群組中使用ReplyToken回覆訊息
