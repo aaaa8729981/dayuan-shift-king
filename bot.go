@@ -81,7 +81,7 @@ if err != nil {
   triggerSumAll(bot, groupID, groupMemberProfile, event)
 
   // 定时触发 "上班囉" 消息
-  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2) 
+  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event) 
 }
 
 
@@ -101,7 +101,7 @@ if err != nil {
 }
 
 // 触发 "上班囉" 消息的函数
-func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int) {
+func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event) {
   for {
     now := time.Now()
     weekday := now.Weekday()
@@ -127,7 +127,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
           sendMessage(bot, groupID, "上班囉")
 
           // 设置定时触发 SumAll 的计时器
-          go triggerSumAll(bot, groupID, groupMemberProfile, event)
+          go triggerSumAll(bot, groupID, groupMemberProfile, event) 
       }
     }
   }
@@ -255,6 +255,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSumAll(event *linebot.Event, groupMemberProfile string) {
+  // 宣告 userName 變數
+  var userName string  
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
@@ -267,10 +269,11 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   userProfile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
   if err == nil {
     // 使用 profile 中的信息，例如 profile.DisplayName
-    userName = userProfile.DisplayName
+    userName = userProfile.DisplayName //./bot.go:270:5: undefined: userName
   } else {
     // 處理錯誤
     log.Println("取得指定群組成員個人資料錯誤:", err)
+    userName = event.Source.UserID
   }
 
   // 訊息內先回，再來總結。
