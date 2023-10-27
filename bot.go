@@ -264,14 +264,15 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
   
   // 取得使用者暱稱
+  userName := event.Source.UserID
   userProfile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
   if err == nil {
     // 使用 profile 中的信息，例如 profile.DisplayName
-    userName = userProfile.DisplayName
+    userName = userProfile.DisplayName  //./bot.go:270:5: undefined: userName
   } else {
     // 處理錯誤
     log.Println("取得指定群組成員個人資料錯誤:", err)
-    userName = event.Source.UserID
+    userName = event.Source.UserID  //./bot.go:274:5: undefined: userName
   }
 
   // 訊息內先回，再來總結。
