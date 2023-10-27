@@ -78,7 +78,7 @@ if err != nil {
 
   // 调用其他函数，并传递环境变量的值作为参数
   triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2)
-  triggerSumAll(bot, groupID, groupMemberProfile)
+  triggerSumAll(bot, groupID, groupMemberProfile, event)
 
   // 定时触发 "上班囉" 消息
   go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2) 
@@ -127,7 +127,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
           sendMessage(bot, groupID, "上班囉")
 
           // 设置定时触发 SumAll 的计时器
-          go triggerSumAll(bot, groupID, groupMemberProfile)
+          go triggerSumAll(bot, groupID, groupMemberProfile, event)
       }
     }
   }
@@ -135,7 +135,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 
 
 // 觸發sumall(在發送pushMessage之後的30分鐘)
-func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string) {
+func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string, event *linebot.Event) {
   count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
   if err != nil {
     log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
@@ -264,7 +264,6 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
   
   // 取得使用者暱稱
-  userName := event.Source.UserID
   userProfile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
   if err == nil {
     // 使用 profile 中的信息，例如 profile.DisplayName
