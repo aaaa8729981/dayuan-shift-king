@@ -16,6 +16,9 @@ var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
 
 func remindToWork(event *linebot.Event) {
+  // 记录第一个Webhook事件，包括群组ID
+  log.Printf("Received first Webhook event - Group ID: %s", event.Source.GroupID)
+
   //從env中取得LINEBOTGROUP_ID
   groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
 
@@ -282,7 +285,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   // }
 
   // 就是請 ChatGPT 幫你總結
-  oriContext = fmt.Sprintf("目前在群組中的使用者有：%s\n\n下面的许多讯息是一个工作的群组，请将以下内容统整，原则上依照内容里的时间排序。請用繁體中文回覆，如果內容無法理解，不需統整沒關係，直接列出即可。請不要捏造內容。請幫忙在回覆內容的最後列出還沒有在群組中發言的同仁。\n\n%s", groupMemberProfile, oriContext)
+  oriContext = fmt.Sprintf("目前在群組中的使用者有：%s\n\n下面的许多讯息是一个工作的群组，请将以下内容统整，原则上依照内容里的时间排序。請用繁體中文回覆，如果內容無法理解，不需統整沒關係，直接列出即可，不要捏造內容。請幫忙在回覆的最後列出還沒有在群組中發言的同仁。\n\n%s", groupMemberProfile, oriContext)
   reply := gptGPT3CompleteContext(oriContext)
 
   // 在群組中使用ReplyToken回覆訊息
