@@ -15,7 +15,7 @@ import (
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
 
-func remindToWork(event *linebot.Event) {  
+func remindToWork(event *linebot.Event) {
   //從env中取得LINEBOTGROUP_ID
   groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
 
@@ -23,27 +23,26 @@ func remindToWork(event *linebot.Event) {
   if groupIDFromEnv != "" {
     groupID = groupIDFromEnv
   } else {
-    groupID = event.Source.GroupID //如果是env中群組idj為空值，就從webhook event中取得值
+    groupID = event.Source.GroupID //如果是env中群組id為空值，就從webhook event中取得值
   }
 
   // 定義：透過groupID取得指定群組成員列表(userID)
   memberIDsResponse, err := bot.GetGroupMemberIDs(groupID, "").Do()
   var userNames []string // 創建一個空的字符串切片
   
-if err != nil {
+  if err != nil {
     log.Println("取得群組成員id列表失败:", err)
-} else {
+  } else {
     // 從 MemberIDsResponse 中提取 userIDs 並放入 userNames 切片中
     for _, userID := range memberIDsResponse.MemberIDs {
-        userNames = append(userNames, userID)
+      userNames = append(userNames, userID)
     }
-//輸出群組成員列表到log
+  //輸出群組成員列表到log
   log.Println("群組成員id列表:", userNames)
-}
-}
+  }
 
   // 获取成员的 profile.DisplayName，并用逗号分隔
-  // var groupMemberProfile string 
+  var groupMemberProfile string 
   // 将 groupMemberProfile 变量从全局变量声明中删除，因为已经在函数内声明它。
   for _, userName := range memberIDsResponse.MemberIDs { //syntax error: non-declaration statement outside function body
   profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
@@ -95,23 +94,23 @@ if err != nil {
   triggerSumAll(bot, groupID, groupMemberProfile, event)
 
   // 定时触发 "上班囉" 消息
-  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event) 
+  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event)
 }
 
 
-  // 函数用于计算等待的时间
-  func calculateWaitTime(targetTime time.Time) time.Duration {
-    now := time.Now()
-    if now.After(targetTime) {
-      targetTime = targetTime.Add(24 * time.Hour)
-    }
-    return targetTime.Sub(now)
+// 函数用于计算等待的时间
+func calculateWaitTime(targetTime time.Time) time.Duration {
+  now := time.Now()
+  if now.After(targetTime) {
+    targetTime = targetTime.Add(24 * time.Hour)
   }
+  return targetTime.Sub(now)
+}
 
-  // 函数用于发送消息
-  func sendMessage(bot *linebot.Client, groupID string, message string) error {
-    _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
-    return err
+// 函数用于发送消息
+func sendMessage(bot *linebot.Client, groupID string, message string) error {
+  _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
+  return err
 }
 
 // 触发 "上班囉" 消息的函数
