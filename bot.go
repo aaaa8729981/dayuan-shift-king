@@ -77,7 +77,7 @@ if err != nil {
   }
 
   // 调用其他函数，并传递环境变量的值作为参数
-  triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2)
+  triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event)
   triggerSumAll(bot, groupID, groupMemberProfile, event)
 
   // 定时触发 "上班囉" 消息
@@ -255,8 +255,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSumAll(event *linebot.Event, groupMemberProfile string) {
-  // 宣告 userName 變數
-  var userName string  
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
@@ -266,10 +264,11 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
   
   // 取得使用者暱稱
+  userName := event.Source.UserID
   userProfile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
   if err == nil {
     // 使用 profile 中的信息，例如 profile.DisplayName
-    userName = userProfile.DisplayName //./bot.go:270:5: undefined: userName
+    userName = userProfile.DisplayName
   } else {
     // 處理錯誤
     log.Println("取得指定群組成員個人資料錯誤:", err)
