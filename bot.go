@@ -13,9 +13,10 @@ import (
 
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
+var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
+
 
 func remindToWork(event *linebot.Event) {  
-
   groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
 
   var groupID string
@@ -26,8 +27,7 @@ func remindToWork(event *linebot.Event) {
   }
 
   // 定義：透過groupID取得指定群組成員列表(userID)
-  groupID = event.Source.GroupID
-  userNames, err := bot.GetGroupMemberIDs(groupID, "").Do()
+  memberIDsResponse, err := bot.GetGroupMemberIDs(groupID, "").Do()
   var userNames []string // 創建一個空的字符串切片
   
 if err != nil {
@@ -264,6 +264,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
   
   // 取得使用者暱稱
+  userName := event.Source.UserID
   userProfile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
   if err == nil {
     // 使用 profile 中的信息，例如 profile.DisplayName
