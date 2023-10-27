@@ -83,13 +83,13 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
       workMessageMinute2 = 30
   }
 
-  return groupID, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
+  return groupID, nill, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
   }
 
 
 func remindToWork(event *linebot.Event) {
   // 调用初始化群组函数以获取相关参数
-  groupID, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup()
+  groupID, _, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup()
 
   // 记录第一个Webhook事件，包括群组ID
   log.Printf("Received first Webhook event - Group ID: %s", event.Source.GroupID)
