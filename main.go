@@ -58,8 +58,8 @@ func main() {
   bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
   log.Println("Bot:", bot, " err:", err)
 
-  // 直接调用 remindToWork 函数，传递 nil 作为 event
-  remindToWork(nil) //確保程式一執行就會執行remindToWork
+  // 直接调用 initializeGroup 函数
+  initializeGroup() //確保程式一執行就會執行initializeGroup
 
   port := os.Getenv("PORT")
   apiKey := os.Getenv("ChatGptToken")

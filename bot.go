@@ -15,85 +15,84 @@ import (
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
 
-func remindToWork(event *linebot.Event) {
-  // 如果传入的 event 为空，可以跳过需要 event 的代码
-  if event != nil {
-
-  // 记录第一个Webhook事件，包括群组ID
-  log.Printf("Received first Webhook event - Group ID: %s", event.Source.GroupID)
-
-  //從env中取得LINEBOTGROUP_ID
+func initializeGroup() (string, []string, string, int, int, int, int) {
+  // 从 env 中获取 LINEBOTGROUP_ID
   groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
 
   var groupID string
   if groupIDFromEnv != "" {
-    groupID = groupIDFromEnv
+      groupID = groupIDFromEnv
   } else {
-    groupID = event.Source.GroupID //如果是env中群組id為空值，就從webhook event中取得值
+    // 如果环境变量中群组 ID 为空，记录日志并跳过这个功能
+    log.Println("未设置 Env 的 groupID")
+    return "", nil, "", 0, 0, 0, 0
   }
 
-  // 定義：透過groupID取得指定群組成員列表(userID)
+  // 定义：透过 groupID 取得指定群组成员列表 (userID)
   memberIDsResponse, err := bot.GetGroupMemberIDs(groupID, "").Do()
-  var userNames []string // 創建一個空的字符串切片
-  
+  var userNames []string
+
   if err != nil {
-    log.Println("取得群組成員id列表失败:", err)
+      log.Println("取得群组成员 id 列表失败:", err)
   } else {
-    // 從 MemberIDsResponse 中提取 userIDs 並放入 userNames 切片中
-    for _, userID := range memberIDsResponse.MemberIDs {
-      userNames = append(userNames, userID)
-    }
-  //輸出群組成員列表到log
-  log.Println("群組成員id列表:", userNames)
+      for _, userID := range memberIDsResponse.MemberIDs {
+          userNames = append(userNames, userID)
+      }
+      log.Println("群组成员 id 列表:", userNames)
   }
 
-  // 获取成员的 profile.DisplayName，并用逗号分隔
-  var groupMemberProfile string 
-  // 将 groupMemberProfile 变量从全局变量声明中删除，因为已经在函数内声明它。
-  for _, userName := range memberIDsResponse.MemberIDs { //syntax error: non-declaration statement outside function body
-    profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
-    if err != nil {
-    log.Printf("获取群组成员的个人资料错误 (用户名: %s): %v", userName, err)
+  var groupMemberProfile string
+  for _, userName := range memberIDsResponse.MemberIDs {
+      profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
+      if err != nil {
+          log.Printf("获取群组成员的个人资料错误 (用户名: %s): %v", userName, err)
       } else {
-    groupMemberProfile += profile.DisplayName + ","
-    }
+          groupMemberProfile += profile.DisplayName + ","
+      }
   }
-  // 移除最後一個逗號
   groupMemberProfile = strings.TrimSuffix(groupMemberProfile, ",")
 
-  // 输出最终的群组成员资料
-  log.Printf("群組成員資料: %s", groupMemberProfile)
-
   // 设置时区为台北
-    taipeiLocation, err := time.LoadLocation("Asia/Taipei")
-    if err != nil {
-    log.Fatal("无法设置时区：", err)
+  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
+  if err != nil {
+      log.Fatal("无法设置时区：", err)
   }
   time.Local = taipeiLocation
 
   // 从环境变量获取时间设置值
   workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
-    if err != nil {
-      log.Println("无法解析WORKMESSAGEHOUR1环境变量", err)
+  if err != nil {
+      log.Println("无法解析 WORKMESSAGEHOUR1 环境变量", err)
       workMessageHour1 = 11
-    }
+  }
   workMessageMinute1, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE1"))
   if err != nil {
-      log.Println("无法解析WORKMESSAGEMINUTE1环境变量", err)
+      log.Println("无法解析 WORKMESSAGEMINUTE1 环境变量", err)
       workMessageMinute1 = 0
   }
 
   workMessageHour2, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR2"))
   if err != nil {
-      log.Println("无法解析WORKMESSAGEHOUR2环境变量", err)
+      log.Println("无法解析 WORKMESSAGEHOUR2 环境变量", err)
       workMessageHour2 = 20
   }
 
   workMessageMinute2, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE2"))
   if err != nil {
-      log.Println("无法解析WORKMESSAGEMINUTE2环境变量", err)
+      log.Println("无法解析 WORKMESSAGEMINUTE2 环境变量", err)
       workMessageMinute2 = 30
   }
+
+  return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
+  }
+
+
+func remindToWork(event *linebot.Event) {
+  // 调用初始化群组函数以获取相关参数
+  groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup()
+
+  // 记录第一个Webhook事件，包括群组ID
+  log.Printf("Received first Webhook event - Group ID: %s", event.Source.GroupID)
 
   // 调用其他函数，并传递环境变量的值作为参数
   triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event)
@@ -101,9 +100,6 @@ func remindToWork(event *linebot.Event) {
 
   // 定时触发 "上班囉" 消息
   go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event)
-    }
-  // 定时触发 "上班囉" 消息
-  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event)  
 } //func remindToWork的結束
 
 
