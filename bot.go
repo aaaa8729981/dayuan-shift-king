@@ -16,6 +16,9 @@ var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
 
 func remindToWork(event *linebot.Event) {
+  // 如果传入的 event 为空，可以跳过需要 event 的代码
+  if event != nil {
+
   // 记录第一个Webhook事件，包括群组ID
   log.Printf("Received first Webhook event - Group ID: %s", event.Source.GroupID)
 
@@ -98,7 +101,10 @@ func remindToWork(event *linebot.Event) {
 
   // 定时触发 "上班囉" 消息
   go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event)
-}
+    }
+  // 定时触发 "上班囉" 消息
+  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event)  
+} //func remindToWork的結束
 
 
 // 函数用于计算等待的时间
