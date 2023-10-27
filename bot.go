@@ -14,10 +14,20 @@ import (
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 
-func remindToWork() {  
+func remindToWork(event *linebot.Event) {  
+
+  groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
+
+  var groupID string
+  if groupIDFromEnv != "" {
+    groupID = groupIDFromEnv
+  } else {
+    groupID = event.Source.GroupID
+  }
+
   // 定義：透過groupID取得指定群組成員列表(userID)
-  groupID := os.Getenv("LINEBOTGROUP_ID")
-  userNames, err := getGroupUserIDs(groupID)
+  groupID := event.Source.GroupID
+  userNames, err := bot.GetGroupMemberIDs(groupID, "").Do()
   if err != nil {
       log.Println("取得群組成員列表失败:", err)
     userNames = []string{} // 设置一个默认的空切片
@@ -33,10 +43,8 @@ func remindToWork() {
     groupMemberProfile += profile.DisplayName + ","
     }
   }
-// 移除最後一個逗號
-groupMemberProfile = strings.TrimSuffix(groupMemberProfile, ",")
-
-handlesumall(groupMemberProfile)
+  // 移除最後一個逗號
+  groupMemberProfile = strings.TrimSuffix(groupMemberProfile, ",")
 
   // 从环境变量获取时间设置值
   workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
@@ -63,13 +71,10 @@ handlesumall(groupMemberProfile)
   }
 
   // 调用其他函数，并传递环境变量的值作为参数
-  triggerWorkMessage(workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2)
-  
-  // 调用 triggerSumAll 时传递 userName
-  triggerSumAll(userNames)
+  triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2)
 
   // 定时触发 "上班囉" 消息
-  go triggerWorkMessage(workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2)
+  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2) 
 }
 
 
@@ -115,7 +120,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
           sendMessage(bot, groupID, "上班囉")
 
           // 设置定时触发 SumAll 的计时器
-          go triggerSumAll()
+          go triggerSumAll(bot, groupID, groupMemberProfile)
       }
     }
   }
@@ -123,7 +128,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 
 
 // 觸發sumall(在發送pushMessage之後的30分鐘)
-func triggerSumAll() {
+func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string) {
   count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
   if err != nil {
     log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
@@ -134,7 +139,7 @@ func triggerSumAll() {
     time.Sleep(30 * time.Minute)
 
     // 触发 SumAll
-    handleSumAll()
+    handleSumAll(event, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
     lastSumAllTriggerTime = time.Now()
@@ -201,8 +206,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
           }
         } else if strings.EqualFold(message.Text, ":list_all") && isGroupEvent(event) {
           handleListAll(event)
-        } else if strings.EqualFold(message.Text, "sum_all") && isGroupEvent(event) {
-          handleSumAll(event)
+        } else if strings.EqualFold(message.Text, ":sum_all") && isGroupEvent(event) {
+          handleSumAll(event, groupMemberProfile)
         } else if isGroupEvent(event) {
           // 如果聊天機器人在群組中，開始儲存訊息。
           handleStoreMsg(event, message.Text)
@@ -242,7 +247,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-func handleSumAll(event *linebot.Event) {
+func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
@@ -253,14 +258,14 @@ func handleSumAll(event *linebot.Event) {
   
   // 取得使用者暱稱
   userName := event.Source.UserID
-  userProfile, err := bot.GetGroupMemberProfile(event.Source.groupID, event.Source.UserID).Do()
+  userProfile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
   if err == nil {
-      // 處理錯誤
-      log.Println("取得指定群組成員個人資料錯誤:", err)
-      userName := event.Source.UserID //若發生錯誤，則繼續將使用者ID傳給oriContext
+    // 使用 profile 中的信息，例如 profile.DisplayName
+    userName = userProfile.DisplayName
   } else {
-      // 使用 profile 中的信息，例如 profile.DisplayName
-      userName := profile.DisplayName
+    // 處理錯誤
+    log.Println("取得指定群組成員個人資料錯誤:", err)
+    userName := event.Source.UserID //若發生錯誤，則繼續將使用者ID傳給oriContext
   }
 
   // 訊息內先回，再來總結。
