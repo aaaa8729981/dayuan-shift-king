@@ -262,18 +262,6 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
     // [xxx]: 他講了什麼... 時間
     oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
   }
-  
-  // 取得使用者暱稱
-  userName := event.Source.UserID
-  userProfile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
-  if err == nil {
-    // 使用 profile 中的信息，例如 profile.DisplayName
-    userName = userProfile.DisplayName  //./bot.go:270:5: undefined: userName
-  } else {
-    // 處理錯誤
-    log.Println("取得指定群組成員個人資料錯誤:", err)
-    userName = event.Source.UserID  //./bot.go:274:5: undefined: userName
-  }
 
   // 訊息內先回，再來總結。
   // if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("好的，總結文字已經發給您了"+userName)).Do(); err != nil {
@@ -288,9 +276,6 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n" + reply)).Do(); err != nil {
     log.Print(err)
   }
-if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do();err != nil{
-  log.Print(err)
-}
 }
 
 
