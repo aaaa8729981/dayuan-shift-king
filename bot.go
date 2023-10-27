@@ -14,12 +14,6 @@ import (
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
-// 设置时区为台北
-taipeiLocation, err := time.LoadLocation("Asia/Taipei")
-if err != nil {
-    log.Fatal("无法设置时区：", err)
-}
-time.Local = taipeiLocation
 
 func remindToWork(event *linebot.Event) {  
   //從env中取得LINEBOTGROUP_ID
@@ -49,8 +43,9 @@ if err != nil {
 }
 
   // 获取成员的 profile.DisplayName，并用逗号分隔
-  var groupMemberProfile string
-  for _, userName := range memberIDsResponse.MemberIDs {
+  // var groupMemberProfile string 
+  // 将 groupMemberProfile 变量从全局变量声明中删除，因为已经在函数内声明它。
+  for _, userName := range memberIDsResponse.MemberIDs { //syntax error: non-declaration statement outside function body
   profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
   if err != nil {
     log.Println("获取群组成员的个人资料错误 (用户名: %s): %v", userName, err)
@@ -63,6 +58,13 @@ if err != nil {
 
   // 输出最终的群组成员资料
   log.Printf("群組成員資料: %s", groupMemberProfile)
+
+  // 设置时区为台北
+  taipeiLocation, err := time.LoadLocation("Asia/Taipei") 
+  if err != nil {
+      log.Fatal("无法设置时区：", err)
+  }
+  time.Local = taipeiLocation
 
   // 从环境变量获取时间设置值
   workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
