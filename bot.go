@@ -83,7 +83,7 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
       workMessageMinute2 = 30
   }
 
-  return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
+  return groupID, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
   }
 
 
