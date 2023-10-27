@@ -264,7 +264,6 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
   
   // 取得使用者暱稱
-  userName := event.Source.UserID
   userProfile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
   if err == nil {
     // 使用 profile 中的信息，例如 profile.DisplayName
