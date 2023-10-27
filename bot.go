@@ -14,16 +14,22 @@ import (
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
-
+// 设置时区为台北
+taipeiLocation, err := time.LoadLocation("Asia/Taipei")
+if err != nil {
+    log.Fatal("无法设置时区：", err)
+}
+time.Local = taipeiLocation
 
 func remindToWork(event *linebot.Event) {  
+  //從env中取得LINEBOTGROUP_ID
   groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
 
   var groupID string
   if groupIDFromEnv != "" {
     groupID = groupIDFromEnv
   } else {
-    groupID = event.Source.GroupID
+    groupID = event.Source.GroupID //如果是env中群組idj為空值，就從webhook event中取得值
   }
 
   // 定義：透過groupID取得指定群組成員列表(userID)
@@ -31,12 +37,15 @@ func remindToWork(event *linebot.Event) {
   var userNames []string // 創建一個空的字符串切片
   
 if err != nil {
-    log.Println("取得群組成員列表失败:", err)
+    log.Println("取得群組成員id列表失败:", err)
 } else {
     // 從 MemberIDsResponse 中提取 userIDs 並放入 userNames 切片中
     for _, userID := range memberIDsResponse.MemberIDs {
         userNames = append(userNames, userID)
     }
+//輸出群組成員列表到log
+  log.Println("群組成員id列表:", userNames)
+}
 }
 
   // 获取成员的 profile.DisplayName，并用逗号分隔
@@ -44,13 +53,16 @@ if err != nil {
   for _, userName := range memberIDsResponse.MemberIDs {
   profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
   if err != nil {
-    log.Println("获取群组成员的个人资料错误:", err)
+    log.Println("获取群组成员的个人资料错误 (用户名: %s): %v", userName, err)
   } else {
     groupMemberProfile += profile.DisplayName + ","
     }
   }
   // 移除最後一個逗號
   groupMemberProfile = strings.TrimSuffix(groupMemberProfile, ",")
+
+  // 输出最终的群组成员资料
+  log.Printf("群組成員資料: %s", groupMemberProfile)
 
   // 从环境变量获取时间设置值
   workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
@@ -269,7 +281,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   // }
 
   // 就是請 ChatGPT 幫你總結
-  oriContext = fmt.Sprintf("下面的许多讯息是一个工作的群组，请将以下内容统整，原则上依照内容里的时间排序。請用繁體中文回覆，如果內容無法理解，不需統整沒關係，直接列出即可。請不要捏造內容\n成员: %s\n\n%s", "目前在群組中的使用者有：", groupMemberProfile, "。請幫忙列出還沒有在群組中發言的同仁", oriContext)
+  oriContext = fmt.Sprintf("目前在群組中的使用者有：%s\n\n下面的许多讯息是一个工作的群组，请将以下内容统整，原则上依照内容里的时间排序。請用繁體中文回覆，如果內容無法理解，不需統整沒關係，直接列出即可。請不要捏造內容。請幫忙在回覆內容的最後列出還沒有在群組中發言的同仁。\n\n%s", groupMemberProfile, oriContext)
   reply := gptGPT3CompleteContext(oriContext)
 
   // 在群組中使用ReplyToken回覆訊息
