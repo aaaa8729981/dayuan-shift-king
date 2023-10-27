@@ -298,8 +298,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
 
 
   // 在群組中使用ReplyToken回覆訊息
-  var err error
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n" + reply + "groupID:" + groupID)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n"+reply+" Group ID: "+event.Source.GroupID)).Do(); err != nil {
   log.Print(err)
   }
 }
