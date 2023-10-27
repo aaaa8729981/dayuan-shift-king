@@ -273,8 +273,9 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   reply := gptGPT3CompleteContext(oriContext)
 
   // 在群組中使用ReplyToken回覆訊息
+  var err error
   if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n" + reply)).Do(); err != nil {
-    log.Print(err)
+  log.Print(err)
   }
 }
 
