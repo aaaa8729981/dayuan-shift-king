@@ -26,16 +26,22 @@ func remindToWork(event *linebot.Event) {
   }
 
   // 定義：透過groupID取得指定群組成員列表(userID)
-  groupID := event.Source.GroupID
+  groupID = event.Source.GroupID
   userNames, err := bot.GetGroupMemberIDs(groupID, "").Do()
-  if err != nil {
-      log.Println("取得群組成員列表失败:", err)
-    userNames = []string{} // 设置一个默认的空切片
-  }
+  var userNames []string // 創建一個空的字符串切片
+  
+if err != nil {
+    log.Println("取得群組成員列表失败:", err)
+} else {
+    // 從 MemberIDsResponse 中提取 userIDs 並放入 userNames 切片中
+    for _, userID := range memberIDsResponse.MemberIDs {
+        userNames = append(userNames, userID)
+    }
+}
 
   // 获取成员的 profile.DisplayName，并用逗号分隔
   var groupMemberProfile string
-  for _, userName := range userNames {
+  for _, userName := range memberIDsResponse.MemberIDs {
   profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
   if err != nil {
     log.Println("获取群组成员的个人资料错误:", err)
@@ -72,6 +78,7 @@ func remindToWork(event *linebot.Event) {
 
   // 调用其他函数，并传递环境变量的值作为参数
   triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2)
+  triggerSumAll(bot, groupID, groupMemberProfile)
 
   // 定时触发 "上班囉" 消息
   go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2) 
@@ -257,7 +264,6 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
   
   // 取得使用者暱稱
-  userName := event.Source.UserID
   userProfile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do()
   if err == nil {
     // 使用 profile 中的信息，例如 profile.DisplayName
@@ -265,7 +271,6 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   } else {
     // 處理錯誤
     log.Println("取得指定群組成員個人資料錯誤:", err)
-    userName := event.Source.UserID //若發生錯誤，則繼續將使用者ID傳給oriContext
   }
 
   // 訊息內先回，再來總結。
