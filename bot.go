@@ -21,7 +21,7 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
 
   var groupID string
   if groupIDFromEnv != "" {
-      groupID = groupIDFromEnv
+      groupID = groupIDFromEnv //groupID是從env裡面設定的
   } else {
     // 如果环境变量中群组 ID 为空，记录日志并跳过这个功能
     log.Println("未设置 Env 的 groupID")
@@ -29,11 +29,11 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
   }
 
   // 定义：透过 groupID 取得指定群组成员列表 (userID)
-  memberIDsResponse, err := bot.GetGroupMemberIDs(groupID, "").Do()
+  memberIDsResponse, err := bot.GetGroupMemberIDs(groupID, continuationToken).Do()
   var userNames []string
 
   if err != nil {
-      log.Println("取得群组成员 id 列表失败:", err)
+      log.Println("取得群组成员 id 列表失败:") //取得失敗時，不判定為錯誤。userNames繼續維持為空值
   } else {
       for _, userID := range memberIDsResponse.MemberIDs {
           userNames = append(userNames, userID)
@@ -42,16 +42,21 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
   }
 
   groupMemberProfile = ""
-  for _, userName := range memberIDsResponse.MemberIDs {
+  if len(userNames) > 0 { //如果userNames長度>0表示有成功取得如果userNames
+    for _, userName := range userNames {
       profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
       if err != nil {
-          log.Printf("获取群组成员的个人资料错误 (用户名: %s): %v", userName, err)
+          log.Printf("獲取群組成員名稱資料錯誤 (用户名: %s): %v", userName, err)
       } else {
           groupMemberProfile += profile.DisplayName + ","
-      }
+            }
+        }
+    } else {
+    // userNames 为空，从环境变量中获取 groupMemberProfile
+  groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
   }
   groupMemberProfile = strings.TrimSuffix(groupMemberProfile, ",")
-
+  
   // 设置时区为台北
   taipeiLocation, err := time.LoadLocation("Asia/Taipei")
   if err != nil {
@@ -84,8 +89,7 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
   }
 
   return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
-  }
-
+}
 
 func remindToWork(event *linebot.Event) {
   // 调用初始化群组函数以获取相关参数
@@ -105,11 +109,11 @@ func remindToWork(event *linebot.Event) {
 
 // 函数用于计算等待的时间
 func calculateWaitTime(targetTime time.Time) time.Duration {
-  now := time.Now()
-  if now.After(targetTime) {
-    targetTime = targetTime.Add(24 * time.Hour)
-  }
-  return targetTime.Sub(now)
+    now := time.Now()
+    if now.After(targetTime) {
+        now = targetTime.Add(24 * time.Hour)
+    }
+    return now.Sub(targetTime)
 }
 
 // 函数用于发送消息
@@ -146,7 +150,30 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 
           // 设置定时触发 SumAll 的计时器
           go triggerSumAll(bot, groupID, groupMemberProfile, event) 
+      //(以下內容測試之後要刪除)
+      } else if weekday == time.Saturday || weekday == time.Sunday {
+      // 如果今天是星期六或星期日，发送 "今天不是工作日" 消息
+      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, time.Local)
+      targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, time.Local)
+
+      timeToWait1 := calculateWaitTime(targetTime1)
+      timeToWait2 := calculateWaitTime(targetTime2)
+
+      // 选择等待时间较短的时间来触发消息
+      var timeToWait time.Duration
+      if timeToWait1 < timeToWait2 {
+          timeToWait = timeToWait1
+      } else {
+          timeToWait = timeToWait2
       }
+
+      // 等待时间后触发消息
+      <-time.After(timeToWait)
+      sendMessage(bot, groupID, "週六日測試")
+
+      // 设置定时触发 SumAll 的计时器
+      go triggerSumAll(bot, groupID, groupMemberProfile, event) 
+      } //以上else if內容測試後要刪除
     }
   }
 
@@ -273,6 +300,17 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSumAll(event *linebot.Event, groupMemberProfile string) {
+  //handleSumAll 函数中對 oriContext 是否為空值的檢查：
+  count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
+  if err != nil {
+      log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
+      return
+  }
+  if oriContext == "" {
+      // 若oriContext 是空值，不使用 ChatGPT
+      return
+  }
+
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
