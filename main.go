@@ -64,6 +64,34 @@ func main() {
   bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
   log.Println("Bot:", bot, " err:", err)
 
+  // 获取工作小时和分钟值
+  workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
+  if err != nil {
+    log.Println("无法解析 WORKMESSAGEHOUR1 环境变量", err)
+    workMessageHour1 = 11 // 设置默认值
+  }
+
+  workMessageMinute1, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE1"))
+  if err != nil {
+    log.Println("无法解析 WORKMESSAGEMINUTE1 环境变量", err)
+    workMessageMinute1 = 0 // 设置默认值
+  }
+
+  workMessageHour2, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR2"))
+  if err != nil {
+    log.Println("无法解析 WORKMESSAGEHOUR2 环境变量", err)
+    workMessageHour2 = 20 // 设置默认值
+  }
+
+  workMessageMinute2, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE2"))
+  if err != nil {
+    log.Println("无法解析 WORKMESSAGEMINUTE2 环境变量", err)
+    workMessageMinute2 = 30 // 设置默认值
+  }
+
+  // 获取其他必要的变量，例如 groupID
+  groupID := os.Getenv("LINEBOTGROUP_ID")
+
   // 直接调用 initializeGroup 函数
   go initializeGroup() //確保程式一執行就會執行initializeGroup
   //確保程式一執行就會執行triggerWorkMessage
