@@ -41,6 +41,13 @@ const (
 )
 
 func main() {
+  // 設置時區為台北
+  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
+  if err != nil {
+    log.Fatal("无法设置时区：", err)
+  }
+  time.Local = taipeiLocation
+  
   stickerRedeemable = false
   var err error
 

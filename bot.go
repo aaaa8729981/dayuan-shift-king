@@ -56,13 +56,6 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
   groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
   }
   groupMemberProfile = strings.TrimSuffix(groupMemberProfile, ",")
-  
-  // 设置时区为台北
-  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
-  if err != nil {
-      log.Fatal("无法设置时区：", err)
-  }
-  time.Local = taipeiLocation
 
   // 从环境变量获取时间设置值
   workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
