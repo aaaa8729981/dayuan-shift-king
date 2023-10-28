@@ -19,6 +19,13 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
   // 从 env 中获取 LINEBOTGROUP_ID
   groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
 
+  // 设置时区为台北
+  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
+  if err != nil {
+    log.Fatal("无法设置时区：", err)
+  }
+  time.Local = taipeiLocation
+
   var groupID string
   if groupIDFromEnv != "" {
       groupID = groupIDFromEnv //groupID是從env裡面設定的

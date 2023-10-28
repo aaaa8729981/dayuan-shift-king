@@ -65,7 +65,10 @@ func main() {
   log.Println("Bot:", bot, " err:", err)
 
   // 直接调用 initializeGroup 函数
-  initializeGroup() //確保程式一執行就會執行initializeGroup
+  go initializeGroup() //確保程式一執行就會執行initializeGroup
+  //確保程式一執行就會執行triggerWorkMessage
+  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, nil)
+
 
   port := os.Getenv("PORT")
   apiKey := os.Getenv("ChatGptToken")
