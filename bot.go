@@ -29,7 +29,7 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
   }
 
   // 定义：透过 groupID 取得指定群组成员列表 (userID)
-  memberIDsResponse, err := bot.GetGroupMemberIDs(groupID, continuationToken).Do()
+  memberIDsResponse, err := bot.GetGroupMemberIDs(groupID, "").Do()
   var userNames []string
 
   if err != nil {
@@ -300,17 +300,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSumAll(event *linebot.Event, groupMemberProfile string) {
-  //handleSumAll 函数中對 oriContext 是否為空值的檢查：
-  count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
-  if err != nil {
-      log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
-      return
-  }
-  if oriContext == "" {
-      // 若oriContext 是空值，不使用 ChatGPT
-      return
-  }
-
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
