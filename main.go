@@ -17,7 +17,7 @@ import (
   "log"
   "net/http"
   "os"
-
+  "time"
   "github.com/line/line-bot-sdk-go/v7/linebot"
   "github.com/sashabaranov/go-openai"
 )
@@ -49,7 +49,6 @@ func main() {
   time.Local = taipeiLocation
   
   stickerRedeemable = false
-  var err error
 
   // Enable new feature (YES, default no)
   enableRedeem = os.Getenv("REDEEM_ENABLE")
