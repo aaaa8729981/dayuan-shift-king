@@ -96,7 +96,7 @@ func initializeGroup() (string, []string, string, int, int, int, int, *time.Loca
   //標記訊息已發送（才不會一直發送訊息）
   messageSent = true
 
-  return return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, taipeiLocation
+  return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, taipeiLocation
 }
 
 func remindToWork(event linebot.Event, location time.Location) {
