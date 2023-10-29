@@ -31,6 +31,7 @@ func gptCompleteContext(ori string, model string) (ret string) {
     Messages: []openai.ChatCompletionMessage{{
       Role:    openai.ChatMessageRoleUser,
       Content: ori,
+      Temperature: 0.2,
     }},
   }
 
@@ -68,6 +69,7 @@ func gptChat(ori string, systemMessage string) (ret string, err error) {
   req := openai.ChatCompletionRequest{
     Model:    "gpt-3.5-turbo-16k-0613",
     Messages: conversation,
+    Temperature: 0.2,
   }
 
   resp, err := client.CreateChatCompletion(ctx, req)
