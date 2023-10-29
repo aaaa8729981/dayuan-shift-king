@@ -100,6 +100,13 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
 }
 
 func remindToWork(event *linebot.Event) {
+  //設定時區為台北
+  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
+  if err != nil {
+      log.Fatal("handleSumAll時區設置錯誤：", err)
+  }
+  time.Local = taipeiLocation
+
   // 调用初始化群组函数以获取相关参数
   groupID, _, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup()
 
@@ -132,6 +139,14 @@ func sendMessage(bot *linebot.Client, groupID string, message string) error {
 
 // 触发 "上班囉" 消息的函数
 func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event) {
+  
+  //設定時區為台北
+  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
+  if err != nil {
+      log.Fatal("handleSumAll時區設置錯誤：", err)
+  }
+  time.Local = taipeiLocation
+
   for {
     now := time.Now()
     weekday := now.Weekday()
@@ -308,6 +323,13 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSumAll(event *linebot.Event, groupMemberProfile string) {
+  //設定時區為台北
+  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
+  if err != nil {
+      log.Fatal("handleSumAll時區設置錯誤：", err)
+  }
+  time.Local = taipeiLocation
+
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
