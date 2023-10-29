@@ -322,8 +322,8 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   // }
 
   // 就是請 ChatGPT 幫你總結
-  systemMessage:= fmt.Sprintf("以下你会看到的许多消息是一个工作的群组，请将以上内容统整，原则上依照内容里的时间排序。请用繁体中文回覆，不要捏造内容。请帮忙在回覆的最后列出还没有在群组中发言的同仁。\n\n目前在群组中的使用者有：%s", groupMemberProfile)
   oriContext = fmt.Sprintf("%s %s", oriContext)
+  systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請將以下内容统整，原則上依照訊息時間排序即可。請用繁體中文回覆，僅需整理內容即可，千萬不要捏造不存在的內容。最後，請幫忙整理出尚未在近5小時內發言的同仁。\n\n目前在群组中的使用者有：%s\n\n%s", groupMemberProfile, oriContext)
 
   //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
   reply, err := gptChat(oriContext, systemMessage)
@@ -335,7 +335,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
 
 
   // 在群組中使用ReplyToken回覆訊息
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n"+reply+" Group ID: "+event.Source.GroupID)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n"+reply+"\n\n Group ID: "+event.Source.GroupID)).Do(); err != nil {
   log.Print(err)
   }
 }
