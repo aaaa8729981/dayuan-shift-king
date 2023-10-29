@@ -14,6 +14,8 @@ import (
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
+var taipeiLocation *time.Location？ //全局變量：將時區指定為台北
+
 
 func initializeGroup() (string, []string, string, int, int, int, int, *time.Location) {
   if messageSent {
@@ -23,13 +25,6 @@ func initializeGroup() (string, []string, string, int, int, int, int, *time.Loca
 
   // 从 env 中获取 LINEBOTGROUP_ID
   groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
-
-  // 设置时区为台北
-  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
-  if err != nil {
-    log.Fatal("无法设置时区：", err)
-  }
-  time.Local = taipeiLocation
 
   var groupID string
   if groupIDFromEnv != "" {
@@ -96,7 +91,7 @@ func initializeGroup() (string, []string, string, int, int, int, int, *time.Loca
   //標記訊息已發送（才不會一直發送訊息）
   messageSent = true
 
-  return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, taipeiLocation
+  return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
 }
 
 func remindToWork(event linebot.Event, location time.Location) {
@@ -310,12 +305,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSumAll(event *linebot.Event, groupMemberProfile string) {
-  //設定時區為台北
-  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
-  if err != nil {
-      log.Fatal("handleSumAll時區設置錯誤：", err)
-  }
-  time.Local = taipeiLocation
 
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""

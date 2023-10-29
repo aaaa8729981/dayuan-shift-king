@@ -28,6 +28,7 @@ var client *openai.Client
 var summaryQueue GroupDB
 var stickerRedeemable bool
 var enableRedeem string
+var taipeiLocation *time.Location
 
 const RedeemStickerPID = "789"
 const RedeemStickerSID = "10856"
