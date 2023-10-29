@@ -15,12 +15,12 @@ import (
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
 
-func initializeGroup() (string, []string, string, int, int, int, int) {
+func initializeGroup() (string, []string, string, int, int, int, int, *time.Location) {
   if messageSent {
     // 消息已经发送，不需要再发送
     return "", nil, "", 0, 0, 0, 0
   }
-  
+
   // 从 env 中获取 LINEBOTGROUP_ID
   groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
 
@@ -96,16 +96,10 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
   //標記訊息已發送（才不會一直發送訊息）
   messageSent = true
 
-  return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
+  return return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, taipeiLocation
 }
 
-func remindToWork(event *linebot.Event) {
-  //設定時區為台北
-  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
-  if err != nil {
-      log.Fatal("handleSumAll時區設置錯誤：", err)
-  }
-  time.Local = taipeiLocation
+func remindToWork(event linebot.Event, location time.Location) {
 
   // 调用初始化群组函数以获取相关参数
   groupID, _, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup()
@@ -123,9 +117,9 @@ func remindToWork(event *linebot.Event) {
 
 
 // 函数用于计算等待的时间
-func calculateWaitTime(targetTime time.Time) time.Duration {
-    now := time.Now().In(taipeiLocation)
-    if now.After(targetTime) {
+func calculateWaitTime(targetTime time.Time, location *time.Location) time.Duration {
+  now := time.Now().In(location)
+  if now.After(targetTime) {
       targetTime = targetTime.Add(24 * time.Hour)
     }
   return targetTime.Sub(now)
@@ -138,14 +132,7 @@ func sendMessage(bot *linebot.Client, groupID string, message string) error {
 }
 
 // 触发 "上班囉" 消息的函数
-func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event) {
-  
-  //設定時區為台北
-  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
-  if err != nil {
-      log.Fatal("handleSumAll時區設置錯誤：", err)
-  }
-  time.Local = taipeiLocation
+func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event, location *time.Location) {
 
   for {
     now := time.Now().In(taipeiLocation)
@@ -203,7 +190,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 
 
 // 觸發sumall(在發送pushMessage之後的30分鐘)
-func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string, event *linebot.Event) {
+func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string, event *linebot.Event, location *time.Location) {
   count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
   if err != nil {
     log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
@@ -414,7 +401,7 @@ func handleRedeemRequestMsg(event *linebot.Event) {
   }
 }
 
-func handleStoreMsg(event *linebot.Event, message string) {
+func handleStoreMsg(event *linebot.Event, message string, location *time.Location) {
   // Get user display name. (It is nick name of the user define.)
   userName := event.Source.UserID
   userProfile, err := bot.GetProfile(event.Source.UserID).Do()
