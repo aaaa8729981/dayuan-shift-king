@@ -16,6 +16,11 @@ var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
 
 func initializeGroup() (string, []string, string, int, int, int, int) {
+  if messageSent {
+    // 消息已经发送，不需要再发送
+    return "", nil, "", 0, 0, 0, 0
+  }
+  
   // 从 env 中获取 LINEBOTGROUP_ID
   groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
 
@@ -88,6 +93,9 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
       workMessageMinute2 = 30
   }
 
+  //標記訊息已發送（才不會一直發送訊息）
+  messageSent = true
+
   return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
 }
 
@@ -111,9 +119,9 @@ func remindToWork(event *linebot.Event) {
 func calculateWaitTime(targetTime time.Time) time.Duration {
     now := time.Now()
     if now.After(targetTime) {
-        now = targetTime.Add(24 * time.Hour)
+      targetTime = targetTime.Add(24 * time.Hour)
     }
-    return now.Sub(targetTime)
+  return targetTime.Sub(now)
 }
 
 // 函数用于发送消息
@@ -152,7 +160,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
           go triggerSumAll(bot, groupID, groupMemberProfile, event) 
       //(以下內容測試之後要刪除)
       } else if weekday == time.Saturday || weekday == time.Sunday {
-      // 如果今天是星期六或星期日，发送 "今天不是工作日" 消息
+      // 如果今天是星期六或星期日，发送 "週六日測試" 訊息
       targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, time.Local)
       targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, time.Local)
 

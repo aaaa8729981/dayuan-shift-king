@@ -41,6 +41,8 @@ const (
   GPT_GPT4_Complete GPT_ACTIONS = 3
 )
 
+var messageSent bool
+
 func main() {
   // 設置時區為台北
   taipeiLocation, err := time.LoadLocation("Asia/Taipei")
