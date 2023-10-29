@@ -124,7 +124,7 @@ func remindToWork(event *linebot.Event) {
 
 // 函数用于计算等待的时间
 func calculateWaitTime(targetTime time.Time) time.Duration {
-    now := time.Now()
+    now := time.Now().In(taipeiLocation)
     if now.After(targetTime) {
       targetTime = targetTime.Add(24 * time.Hour)
     }
@@ -148,7 +148,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
   time.Local = taipeiLocation
 
   for {
-    now := time.Now()
+    now := time.Now().In(taipeiLocation)
     weekday := now.Weekday()
 
     // 僅在星期一到星期五执行
@@ -217,7 +217,7 @@ func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile strin
     handleSumAll(event, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
-    lastSumAllTriggerTime = time.Now()
+    lastSumAllTriggerTime = time.Now().In(taipeiLocation)
   }
 }
 
@@ -426,7 +426,7 @@ func handleStoreMsg(event *linebot.Event, message string) {
   m := MsgDetail{
     MsgText:  message,
     UserName: userName,
-    Time:     time.Now(),
+    Time:     time.Now().In(taipeiLocation),
   }
   summaryQueue.AppendGroupInfo(getGroupID(event), m)
 }
