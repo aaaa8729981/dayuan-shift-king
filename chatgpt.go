@@ -31,7 +31,6 @@ func gptCompleteContext(ori string, model string) (ret string) {
     Messages: []openai.ChatCompletionMessage{{
       Role:    openai.ChatMessageRoleUser,
       Content: ori,
-      Temperature: 0.2,
     }},
   }
 
