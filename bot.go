@@ -45,7 +45,7 @@ func initializeGroup() (string, []string, string, int, int, int, int) {
   var userNames []string
 
   if err != nil {
-      log.Println("取得群组成员 id 列表失败:") //取得失敗時，不判定為錯誤。userNames繼續維持為空值
+      log.Println("透過env取得群組成員列表:") //取得失敗時，不判定為錯誤。userNames繼續維持為空值
   } else {
       for _, userID := range memberIDsResponse.MemberIDs {
           userNames = append(userNames, userID)
@@ -322,7 +322,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   // }
 
   // 就是請 ChatGPT 幫你總結
-  systemMessage:= fmt.Sprintf("目前在群組中的使用者有：%s\n\n以下你會看到的許多訊息是一個工作的群組，請將以上內容統整，原則上依照内容裡的時間排序。請用繁體中文回覆，不要捏造內容。請幫忙在回覆的最後列出還沒有在群組中發言的同仁。\n\n%s", groupMemberProfile)
+  systemMessage:= fmt.Sprintf("以下你会看到的许多消息是一个工作的群组，请将以上内容统整，原则上依照内容里的时间排序。请用繁体中文回覆，不要捏造内容。请帮忙在回覆的最后列出还没有在群组中发言的同仁。\n\n目前在群组中的使用者有：%s", groupMemberProfile)
   oriContext = fmt.Sprintf("%s %s", oriContext)
 
   //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage

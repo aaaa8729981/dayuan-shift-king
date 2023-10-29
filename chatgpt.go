@@ -64,6 +64,12 @@ func gptChat(ori string, systemMessage string) (ret string, err error) {
       Content: ori,
     },
   }
+  
+  // 在傳送Chat Conversation之前，将Chat Conversation印出到log中
+  fmt.Println("Chat Conversation:")
+  for _, msg := range conversation {
+      fmt.Printf("Role: %s, Content: %s\n", msg.Role, msg.Content)
+  }
 
   // Create a ChatCompletionRequest using the conversation.
   req := openai.ChatCompletionRequest{
