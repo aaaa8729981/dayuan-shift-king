@@ -9,15 +9,16 @@ import (
   "github.com/line/line-bot-sdk-go/v7/linebot"
   "os"
   "strconv"
+  "main"
 )
 
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
-var taipeiLocation *time.Location？ //全局變量：將時區指定為台北
+var TaipeiLocation *time.Location //全局變量：將時區指定為台北
 
 
-func initializeGroup() (string, []string, string, int, int, int, int, *time.Location) {
+func initializeGroup() (string, []string, string, int, int, int, int){
   if messageSent {
     // 消息已经发送，不需要再发送
     return "", nil, "", 0, 0, 0, 0
@@ -94,7 +95,7 @@ func initializeGroup() (string, []string, string, int, int, int, int, *time.Loca
   return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
 }
 
-func remindToWork(event linebot.Event, location time.Location) {
+func remindToWork(event linebot.Event) {
 
   // 调用初始化群组函数以获取相关参数
   groupID, _, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup()
@@ -112,8 +113,8 @@ func remindToWork(event linebot.Event, location time.Location) {
 
 
 // 函数用于计算等待的时间
-func calculateWaitTime(targetTime time.Time, location *time.Location) time.Duration {
-  now := time.Now().In(location)
+func calculateWaitTime(targetTime time.Time) time.Duration {
+  now := time.Now().In(taipeiLocation)
   if now.After(targetTime) {
       targetTime = targetTime.Add(24 * time.Hour)
     }
@@ -127,7 +128,7 @@ func sendMessage(bot *linebot.Client, groupID string, message string) error {
 }
 
 // 触发 "上班囉" 消息的函数
-func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event, location *time.Location) {
+func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event) {
 
   for {
     now := time.Now().In(taipeiLocation)
@@ -135,8 +136,8 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 
     // 僅在星期一到星期五执行
     if weekday >= time.Monday && weekday <= time.Friday {
-      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, time.Local)
-          targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, time.Local)
+      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, main.TaipeiLocation)
+          targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, main.TaipeiLocation)
 
           timeToWait1 := calculateWaitTime(targetTime1)
           timeToWait2 := calculateWaitTime(targetTime2)
@@ -158,8 +159,8 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
       //(以下內容測試之後要刪除)
       } else if weekday == time.Saturday || weekday == time.Sunday {
       // 如果今天是星期六或星期日，发送 "週六日測試" 訊息
-      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, time.Local)
-      targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, time.Local)
+      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, main.TaipeiLocation)
+      targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, main.TaipeiLocation)
 
       timeToWait1 := calculateWaitTime(targetTime1)
       timeToWait2 := calculateWaitTime(targetTime2)
@@ -185,7 +186,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 
 
 // 觸發sumall(在發送pushMessage之後的30分鐘)
-func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string, event *linebot.Event, location *time.Location) {
+func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string, event *linebot.Event) {
   count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
   if err != nil {
     log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
@@ -390,7 +391,7 @@ func handleRedeemRequestMsg(event *linebot.Event) {
   }
 }
 
-func handleStoreMsg(event *linebot.Event, message string, location *time.Location) {
+func handleStoreMsg(event *linebot.Event, message string) {
   // Get user display name. (It is nick name of the user define.)
   userName := event.Source.UserID
   userProfile, err := bot.GetProfile(event.Source.UserID).Do()

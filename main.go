@@ -28,7 +28,7 @@ var client *openai.Client
 var summaryQueue GroupDB
 var stickerRedeemable bool
 var enableRedeem string
-var taipeiLocation *time.Location
+var TaipeiLocation *time.Location
 
 const RedeemStickerPID = "789"
 const RedeemStickerSID = "10856"
@@ -45,12 +45,11 @@ const (
 var messageSent bool
 
 func main() {
-  // 設置時區為台北
-  taipeiLocation, err := time.LoadLocation("Asia/Taipei")
-  if err != nil {
+// 先初始化 TaipeiLocation
+TaipeiLocation, err := time.LoadLocation("Asia/Taipei")
+if err != nil {
     log.Fatal("无法设置时区：", err)
   }
-  time.Local = taipeiLocation
   
   stickerRedeemable = false
 
@@ -96,9 +95,8 @@ func main() {
   // 获取其他必要的变量，例如 groupID
   groupID := os.Getenv("LINEBOTGROUP_ID")
 
-  // 直接调用 initializeGroup 函数
-  go initializeGroup() //確保程式一執行就會執行initializeGroup
-  //確保程式一執行就會執行triggerWorkMessage
+  // 调用 initializeGroup 和 triggerWorkMessage，传递 TaipeiLocation
+  groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup(TaipeiLocation)
   go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, nil)
 
 
