@@ -9,7 +9,6 @@ import (
   "github.com/line/line-bot-sdk-go/v7/linebot"
   "os"
   "strconv"
-  "main"
 )
 
 // 定義一個全局變量用於記錄上次觸發sumall的時間
