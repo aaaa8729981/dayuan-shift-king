@@ -4,21 +4,22 @@ import (
   "fmt"
   "log"
   "net/http"
-  "strings"
-  "time"
-  "github.com/line/line-bot-sdk-go/v7/linebot"
   "os"
   "strconv"
+  "strings"
+  "time"
+
+  "github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
 
-func initializeGroup() (string, []string, string){
+func initializeGroup() (string, string){ //func main調用之後取得groupID, groupMemberProfile
   if messageSent {
     // 消息已经发送，不需要再发送
-    return "", nil
+    return "", ""
   }
 
   // 从 env 中获取 LINEBOTGROUP_ID
@@ -27,11 +28,11 @@ func initializeGroup() (string, []string, string){
   var groupID string
   if groupIDFromEnv != "" {
     groupID = groupIDFromEnv //groupID是從env裡面設定的
-    log.PrinIn("groupID:", groupID)  
+    log.Println("groupID:", groupID)  
   } else {
     // 如果ENV檔案中groupID為空值，寫入log並跳過這功能
     log.Println("未设置 Env 的 groupID")
-    return "", nil
+    return "", ""
   }
 
   // 透过 groupID 取得指定群组成员列表 (userID)
@@ -65,8 +66,8 @@ func initializeGroup() (string, []string, string){
     }
   //標記訊息已發送（才不會一直發送訊息）
   messageSent = true
-  
-  return groupID, userNames, groupMemberProfile
+
+  return groupID, groupMemberProfile
 }
 
 // 函数用于计算等待的时间
@@ -276,7 +277,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   // }
 
   // 就是請 ChatGPT 幫你總結
-  oriContext = fmt.Sprintf("%s %s", oriContext)
+  oriContext = fmt.Sprintf("%s", oriContext)
   systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請將以下内容统整，原則上依照訊息時間排序即可。請用繁體中文回覆，僅需整理內容即可，千萬不要捏造不存在的內容。最後，請幫忙整理出尚未在近5小時內發言的同仁。\n\n目前在群组中的使用者有：%s\n\n%s", groupMemberProfile, oriContext)
 
   //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage

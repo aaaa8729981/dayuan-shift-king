@@ -17,10 +17,11 @@ import (
   "log"
   "net/http"
   "os"
+  "strconv"
   "time"
+
   "github.com/line/line-bot-sdk-go/v7/linebot"
   "github.com/sashabaranov/go-openai"
-  "strconv"
 )
 
 var bot *linebot.Client
@@ -51,7 +52,7 @@ func main() {
   if err != nil {
     log.Fatal("无法设置时区：", err)
   }
-  
+
   stickerRedeemable = false
 
   // Enable new feature (YES, default no)
@@ -94,7 +95,7 @@ func main() {
   }
 
   // 調用 initializeGroup 和 triggerWorkMessage
-  groupID, userNames, groupMemberProfile := initializeGroup() //調用之後由initializeGroup取得groupID, userNames, groupMemberProfile
+  groupID, groupMemberProfile := initializeGroup() //調用之後由initializeGroup取得groupID, groupMemberProfile
   go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, nil, groupMemberProfile)
 
   port := os.Getenv("PORT")
