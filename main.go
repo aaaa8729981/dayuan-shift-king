@@ -106,13 +106,13 @@ func main() {
 
   port := os.Getenv("PORT")
   addr := fmt.Sprintf(":%s", port)
-  http.ListenAndServe(addr, nil)
 
   apiKey := os.Getenv("ChatGptToken")
 
   if apiKey != "" {
     client = openai.NewClient(apiKey)
   }
+  http.ListenAndServe(addr, nil)
 }
 
 func IsRedemptionEnabled() bool {
