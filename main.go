@@ -28,7 +28,7 @@ var client *openai.Client
 var summaryQueue GroupDB
 var stickerRedeemable bool
 var enableRedeem string
-var TaipeiLocation *time.Location
+var TaipeiLocation *time.Location  //TaipeiLocation redeclared in this block
 
 const RedeemStickerPID = "789"
 const RedeemStickerSID = "10856"

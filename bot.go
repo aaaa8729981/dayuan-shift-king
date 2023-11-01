@@ -14,7 +14,7 @@ import (
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
-var TaipeiLocation *time.Location //全局變量：將時區指定為台北
+//other declaration of TaipeiLocation //全局變量：將時區指定為台北
 
 
 func initializeGroup() (string, []string, string, int, int, int, int){
@@ -35,7 +35,7 @@ func initializeGroup() (string, []string, string, int, int, int, int){
     return "", nil, "", 0, 0, 0, 0
   }
 
-  // 定义：透过 groupID 取得指定群组成员列表 (userID)
+  // 透过 groupID 取得指定群组成员列表 (userID)
   memberIDsResponse, err := bot.GetGroupMemberIDs(groupID, "").Do()
   var userNames []string
 
@@ -49,7 +49,7 @@ func initializeGroup() (string, []string, string, int, int, int, int){
   }
 
   groupMemberProfile = ""
-  if len(userNames) > 0 { //如果userNames長度>0表示有成功取得如果userNames
+  if len(userNames) > 0 { //如果userNames長度>0表示有成功
     for _, userName := range userNames {
       profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
       if err != nil {
@@ -90,30 +90,13 @@ func initializeGroup() (string, []string, string, int, int, int, int){
 
   //標記訊息已發送（才不會一直發送訊息）
   messageSent = true
-
+  
   return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
 }
 
-func remindToWork(event linebot.Event) {
-
-  // 调用初始化群组函数以获取相关参数
-  groupID, _, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup()
-
-  // 记录第一个Webhook事件，包括群组ID
-  log.Printf("Received first Webhook event - Group ID: %s", event.Source.GroupID)
-
-  // 调用其他函数，并传递环境变量的值作为参数
-  triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event)
-  triggerSumAll(bot, groupID, groupMemberProfile, event)
-
-  // 定时触发 "上班囉" 消息
-  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event)
-} //func remindToWork的結束
-
-
 // 函数用于计算等待的时间
 func calculateWaitTime(targetTime time.Time) time.Duration {
-  now := time.Now().In(taipeiLocation)
+  now := time.Now().In(TaipeiLocation)
   if now.After(targetTime) {
       targetTime = targetTime.Add(24 * time.Hour)
     }
@@ -126,17 +109,17 @@ func sendMessage(bot *linebot.Client, groupID string, message string) error {
   return err
 }
 
-// 触发 "上班囉" 消息的函数
+// 發送 "上班囉" 消息的函数
 func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event) {
 
   for {
-    now := time.Now().In(taipeiLocation)
+    now := time.Now().In(TaipeiLocation)
     weekday := now.Weekday()
 
     // 僅在星期一到星期五执行
     if weekday >= time.Monday && weekday <= time.Friday {
-      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, main.TaipeiLocation)
-          targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, main.TaipeiLocation)
+      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, TaipeiLocation)
+          targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, TaipeiLocation)
 
           timeToWait1 := calculateWaitTime(targetTime1)
           timeToWait2 := calculateWaitTime(targetTime2)
@@ -158,8 +141,8 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
       //(以下內容測試之後要刪除)
       } else if weekday == time.Saturday || weekday == time.Sunday {
       // 如果今天是星期六或星期日，发送 "週六日測試" 訊息
-      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, main.TaipeiLocation)
-      targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, main.TaipeiLocation)
+      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, TaipeiLocation)
+      targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, TaipeiLocation)
 
       timeToWait1 := calculateWaitTime(targetTime1)
       timeToWait2 := calculateWaitTime(targetTime2)
@@ -199,7 +182,7 @@ func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile strin
     handleSumAll(event, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
-    lastSumAllTriggerTime = time.Now().In(taipeiLocation)
+    lastSumAllTriggerTime = time.Now().In(TaipeiLocation)
   }
 }
 
@@ -402,7 +385,7 @@ func handleStoreMsg(event *linebot.Event, message string) {
   m := MsgDetail{
     MsgText:  message,
     UserName: userName,
-    Time:     time.Now().In(taipeiLocation),
+    Time:     time.Now().In(TaipeiLocation),
   }
   summaryQueue.AppendGroupInfo(getGroupID(event), m)
 }
