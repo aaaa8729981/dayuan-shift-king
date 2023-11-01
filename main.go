@@ -46,8 +46,9 @@ var messageSent bool
 
 func main() {
 // 先初始化 TaipeiLocation
-TaipeiLocation, err := time.LoadLocation("Asia/Taipei")
-if err != nil {
+  var err error
+  TaipeiLocation, err = time.LoadLocation("Asia/Taipei")
+  if err != nil {
     log.Fatal("无法设置时区：", err)
   }
   

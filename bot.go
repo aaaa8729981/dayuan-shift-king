@@ -42,27 +42,29 @@ func initializeGroup() (string, []string, string, int, int, int, int){
   if err != nil {
       log.Println("透過env取得群組成員列表:") //取得失敗時，不判定為錯誤。userNames繼續維持為空值
   } else {
-      for _, userID := range memberIDsResponse.MemberIDs {
-          userNames = append(userNames, userID)
-      }
-      log.Println("群组成员 id 列表:", userNames)
-  }
+    var userNames []string
+    for _, userID := range memberIDsResponse.MemberIDs {
+      userNames = append(userNames, userID)
+    }
+    log.Println("群组成员 id 列表:", userNames)
 
-  groupMemberProfile = ""
-  if len(userNames) > 0 { //如果userNames長度>0表示有成功
-    for _, userName := range userNames {
-      profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
-      if err != nil {
+    // 僅在有成功取得成員列表時使用 userNames 變數
+    groupMemberProfile = ""
+    if len(userNames) > 0 { //如果userNames長度>0表示有成功
+      for _, userName := range userNames {
+        profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
+        if err != nil {
           log.Printf("獲取群組成員名稱資料錯誤 (用户名: %s): %v", userName, err)
       } else {
           groupMemberProfile += profile.DisplayName + ","
-            }
         }
+      }
     } else {
     // userNames 为空，从环境变量中获取 groupMemberProfile
-  groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
-  }
+      groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
+    }
   groupMemberProfile = strings.TrimSuffix(groupMemberProfile, ",")
+    }
 
   // 从环境变量获取时间设置值
   workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
