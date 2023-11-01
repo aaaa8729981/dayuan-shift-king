@@ -14,7 +14,7 @@ import (
 
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
-var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
+var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全域變數
 
 func initializeGroup() (string, string){ //func main調用之後取得groupID, groupMemberProfile
   if messageSent {
@@ -264,6 +264,16 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
 }
 
 func handleSumAll(event *linebot.Event, groupMemberProfile string) {
+  if len(groupMemberProfile) <= 0 {
+    //如果groupMemberProfile為空值，從ENV中獲取GROUPMEMBERPROFILE
+    groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
+  }
+
+  if len(groupMemberProfile) <= 0 {
+    //如果groupMemberProfile仍然為空值，記錄到log
+    log.Println("groupMemberProfile 為空值")
+    return
+  }
 
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
