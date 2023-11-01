@@ -15,10 +15,10 @@ import (
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
 
-func initializeGroup() (string, []string, string, int, int, int, int){
+func initializeGroup() (string, []string, string){
   if messageSent {
     // 消息已经发送，不需要再发送
-    return "", nil, "", 0, 0, 0, 0
+    return "", nil
   }
 
   // 从 env 中获取 LINEBOTGROUP_ID
@@ -26,11 +26,12 @@ func initializeGroup() (string, []string, string, int, int, int, int){
 
   var groupID string
   if groupIDFromEnv != "" {
-      groupID = groupIDFromEnv //groupID是從env裡面設定的
+    groupID = groupIDFromEnv //groupID是從env裡面設定的
+    log.PrinIn("groupID:", groupID)  
   } else {
-    // 如果环境变量中群组 ID 为空，记录日志并跳过这个功能
+    // 如果ENV檔案中groupID為空值，寫入log並跳過這功能
     log.Println("未设置 Env 的 groupID")
-    return "", nil, "", 0, 0, 0, 0
+    return "", nil
   }
 
   // 透过 groupID 取得指定群组成员列表 (userID)
@@ -40,7 +41,6 @@ func initializeGroup() (string, []string, string, int, int, int, int){
   if err != nil {
       log.Println("透過env取得群組成員列表:") //取得失敗時，不判定為錯誤。userNames繼續維持為空值
   } else {
-    var userNames []string
     for _, userID := range memberIDsResponse.MemberIDs {
       userNames = append(userNames, userID)
     }
@@ -63,35 +63,10 @@ func initializeGroup() (string, []string, string, int, int, int, int){
     }
   groupMemberProfile = strings.TrimSuffix(groupMemberProfile, ",")
     }
-
-  // 从环境变量获取时间设置值
-  workMessageHour1, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR1"))
-  if err != nil {
-      log.Println("无法解析 WORKMESSAGEHOUR1 环境变量", err)
-      workMessageHour1 = 11
-  }
-  workMessageMinute1, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE1"))
-  if err != nil {
-      log.Println("无法解析 WORKMESSAGEMINUTE1 环境变量", err)
-      workMessageMinute1 = 0
-  }
-
-  workMessageHour2, err := strconv.Atoi(os.Getenv("WORKMESSAGEHOUR2"))
-  if err != nil {
-      log.Println("无法解析 WORKMESSAGEHOUR2 环境变量", err)
-      workMessageHour2 = 20
-  }
-
-  workMessageMinute2, err := strconv.Atoi(os.Getenv("WORKMESSAGEMINUTE2"))
-  if err != nil {
-      log.Println("无法解析 WORKMESSAGEMINUTE2 环境变量", err)
-      workMessageMinute2 = 30
-  }
-
   //標記訊息已發送（才不會一直發送訊息）
   messageSent = true
   
-  return groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2
+  return groupID, userNames, groupMemberProfile
 }
 
 // 函数用于计算等待的时间
@@ -109,8 +84,8 @@ func sendMessage(bot *linebot.Client, groupID string, message string) error {
   return err
 }
 
-// 發送 "上班囉" 消息的函数
-func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event) {
+// 發送 "上班囉" 消息的函数（在func main一開始就調用此函數）
+func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event, groupMemberProfile string) {
 
   for {
     now := time.Now().In(TaipeiLocation)
