@@ -14,8 +14,6 @@ import (
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全局變數
-//other declaration of TaipeiLocation //全局變量：將時區指定為台北
-
 
 func initializeGroup() (string, []string, string, int, int, int, int){
   if messageSent {
@@ -46,7 +44,7 @@ func initializeGroup() (string, []string, string, int, int, int, int){
     for _, userID := range memberIDsResponse.MemberIDs {
       userNames = append(userNames, userID)
     }
-    log.Println("群组成员 id 列表:", userNames)
+    log.Println("群組成員 id 列表:", userNames)
 
     // 僅在有成功取得成員列表時使用 userNames 變數
     groupMemberProfile = ""
@@ -166,8 +164,6 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
       } //以上else if內容測試後要刪除
     }
   }
-
-
 
 // 觸發sumall(在發送pushMessage之後的30分鐘)
 func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string, event *linebot.Event) {
