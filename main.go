@@ -98,25 +98,21 @@ func main() {
   groupID, groupMemberProfile := initializeGroup() //調用之後由initializeGroup取得groupID, groupMemberProfile
   go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, nil, groupMemberProfile)
 
+
   //將groupMemberProfile 傳遞給 callbackHandler
   http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
     callbackHandler(w, r, groupMemberProfile)
   })
 
   port := os.Getenv("PORT")
+  addr := fmt.Sprintf(":%s", port)
+  http.ListenAndServe(addr, nil)
+
   apiKey := os.Getenv("ChatGptToken")
 
   if apiKey != "" {
     client = openai.NewClient(apiKey)
   }
-
-  //將groupMemberProfile 傳遞給 callbackHandler
-  http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-    callbackHandler(w, r, groupMemberProfile)
-  })
-
-  addr := fmt.Sprintf(":%s", port)
-  http.ListenAndServe(addr, nil)
 }
 
 func IsRedemptionEnabled() bool {
