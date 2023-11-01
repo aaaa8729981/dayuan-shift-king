@@ -95,8 +95,8 @@ if err != nil {
   // 获取其他必要的变量，例如 groupID
   groupID := os.Getenv("LINEBOTGROUP_ID")
 
-  // 调用 initializeGroup 和 triggerWorkMessage，传递 TaipeiLocation
-  groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup(TaipeiLocation)
+  // 調用 initializeGroup 和 triggerWorkMessage
+  groupID, userNames, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 := initializeGroup()
   go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, nil)
 
 
