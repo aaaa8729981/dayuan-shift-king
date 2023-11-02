@@ -262,7 +262,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
   for _, m := range q {
     // [xxx]: 他講了什麼... 時間
-    oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
+    oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("2006-01-02 15:04:05"))
   }
 
   // 訊息內先回，再來總結。
@@ -272,7 +272,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
 
   // 就是請 ChatGPT 幫你總結
   oriContext = fmt.Sprintf("%s", oriContext)
-  systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙整理出尚未在近９小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
+  systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
 
   //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
   reply, err := gptChat(oriContext, systemMessage)
@@ -284,7 +284,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
 
   // 在群組中使用ReplyToken回覆訊息
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家：\n"+reply+"\n\nGroup ID: "+event.Source.GroupID)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply+"\n\nGroup ID: "+event.Source.GroupID)).Do(); err != nil {
   log.Print(err)
   } else {
     //印出reply內容
@@ -296,7 +296,7 @@ func handleListAll(event *linebot.Event) {
   reply := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
   for _, m := range q {
-    reply = reply + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, m.Time.Local().UTC().Format("2006-01-02 15:04:05"))
+    reply = reply + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("2006-01-02 15:04:05"))
   }
 
   if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
