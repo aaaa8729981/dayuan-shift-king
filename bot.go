@@ -109,15 +109,15 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
           } else {
               timeToWait = timeToWait2
           }
-
-          // 等待时间后触发消息
-          <-time.After(timeToWait)
-          sendMessage(bot, groupID, "請各位同仁整理今日工作項目表")
-
-          // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
-          time.AfterFunc(30*time.Minute, func() {
-            triggerSumAll(bot, groupID, groupMemberProfile, event)
-          })
+      // 等待时间后触发消息
+      <-time.After(timeToWait)
+      sendMessage(bot, groupID, "請各位同仁整理今日工作項目表")
+      // 在觸發 triggerSumAll 前添加日誌
+      log.Println("等待時間已過，觸發 triggerSumAll")
+      // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
+      time.AfterFunc(30*time.Minute, func() {
+        triggerSumAll(bot, groupID, groupMemberProfile, event)
+      })
       return // 退出當前循環，等待下一輪檢查
       } 
     }
@@ -132,9 +132,11 @@ func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile strin
   }
 
   for i := 0; i < count; i++ {
+    log.Printf("等待30分鐘，然後觸發第 %d 次 SumAll\n", i+1)
     time.Sleep(30 * time.Minute)
 
     // 触发 SumAll
+    log.Printf("觸發第 %d 次 SumAll\n", i+1)
     handleSumAll(event, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
