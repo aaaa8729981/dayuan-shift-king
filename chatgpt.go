@@ -58,6 +58,10 @@ func gptChat(ori string, systemMessage string) (ret string, err error) {
       Role:    openai.ChatMessageRoleSystem,
       Content: systemMessage,
     },
+    {
+      Role:    openai.ChatMessageRoleAssistant,
+      Content: ori,
+    },
   }
   
   // 在傳送Chat Conversation之前，将Chat Conversation印出到log中

@@ -112,34 +112,14 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 
           // 等待时间后触发消息
           <-time.After(timeToWait)
-          sendMessage(bot, groupID, "上班囉")
+          sendMessage(bot, groupID, "請各位同仁整理今日工作項目表")
 
-          // 设置定时触发 SumAll 的计时器
-          go triggerSumAll(bot, groupID, groupMemberProfile, event) 
-      //(以下內容測試之後要刪除)
-      } else if weekday == time.Saturday || weekday == time.Sunday {
-      // 如果今天是星期六或星期日，发送 "週六日測試" 訊息
-      targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, TaipeiLocation)
-      targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, TaipeiLocation)
-
-      timeToWait1 := calculateWaitTime(targetTime1)
-      timeToWait2 := calculateWaitTime(targetTime2)
-
-      // 选择等待时间较短的时间来触发消息
-      var timeToWait time.Duration
-      if timeToWait1 < timeToWait2 {
-          timeToWait = timeToWait1
-      } else {
-          timeToWait = timeToWait2
-      }
-
-      // 等待时间后触发消息
-      <-time.After(timeToWait)
-      sendMessage(bot, groupID, "週六日測試")
-
-      // 设置定时触发 SumAll 的计时器
-      go triggerSumAll(bot, groupID, groupMemberProfile, event) 
-      } //以上else if內容測試後要刪除
+          // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
+          time.AfterFunc(30*time.Minute, func() {
+            triggerSumAll(bot, groupID, groupMemberProfile, event)
+          })
+      return // 退出當前循環，等待下一輪檢查
+      } 
     }
   }
 
@@ -267,6 +247,8 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   if len(groupMemberProfile) <= 0 {
     //如果groupMemberProfile為空值，從ENV中獲取GROUPMEMBERPROFILE
     groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
+    log.Println("從os.Getenv取得GROUPMEMBERPROFILE")
+    log.Println(groupMemberProfile)
   }
 
   if len(groupMemberProfile) <= 0 {
@@ -290,7 +272,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
 
   // 就是請 ChatGPT 幫你總結
   oriContext = fmt.Sprintf("%s", oriContext)
-  systemMessage:= fmt.Sprintf("以上你會看到的是一個工作群組中的許多訊息，請將以上内容统整，原則上依照訊息時間排序即可。請用繁體中文回覆，僅需整理內容即可，千萬不要捏造不存在的內容。最後，請幫忙整理出尚未在近5小時內發言的同仁。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
+  systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙整理出尚未在近９小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
 
   //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
   reply, err := gptChat(oriContext, systemMessage)
@@ -302,7 +284,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
 
   // 在群組中使用ReplyToken回覆訊息
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("目前總結如下：\n"+reply+"\n\nGroup ID: "+event.Source.GroupID)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家：\n"+reply+"\n\nGroup ID: "+event.Source.GroupID)).Do(); err != nil {
   log.Print(err)
   } else {
     //印出reply內容
