@@ -173,7 +173,7 @@ func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfi
     // 就是請 ChatGPT 幫你總結
     oriContext = fmt.Sprintf("%s", oriContext)
     systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
- 
+
       //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
       reply, err := gptChat(oriContext, systemMessage)
       log.Println(oriContext)
@@ -254,6 +254,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
           handleSumAll(event, groupMemberProfile)
         } else if isGroupEvent(event) {
           // 如果聊天機器人在群組中，開始儲存訊息。
+          //紀錄groupID的值
+          log.Printf("groupID值： %s\n", event.Source.GroupID)
           handleStoreMsg(event, message.Text)
           triggerSumAll(event.Source.GroupID, groupMemberProfile, event)
         }
