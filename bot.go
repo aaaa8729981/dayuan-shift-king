@@ -117,7 +117,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
       // 在觸發 triggerSumAll 前添加日誌
       log.Println("等待時間已過，觸發 triggerSumAll")
       // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
-      time.AfterFunc(3*time.Minute, func() { //先調整為3分鐘測試用
+      time.AfterFunc(30*time.Minute, func() { 
         triggerSumAll(groupID, groupMemberProfile, event)
       })
       return // 退出當前循環，等待下一輪檢查
@@ -134,8 +134,8 @@ func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Even
   }
 
   for i := 0; i < count; i++ {
-    log.Printf("等待30分鐘，然後觸發第 %d 次 SumAll\n", i+1)
-    time.Sleep(1 * time.Minute) //先調整為3分鐘測試用
+    log.Printf("等待10分鐘，然後觸發第 %d 次 SumAll\n", i+1)
+    time.Sleep(10 * time.Minute) 
 
     //確保在 event 變數為 nil 時不執行 handleGroupSumAll 函數，避免了空指針異常。
     if event == nil {
@@ -173,7 +173,7 @@ func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfi
     // 就是請 ChatGPT 幫你總結
     oriContext = fmt.Sprintf("%s", oriContext)
     systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
-
+ 
       //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
       reply, err := gptChat(oriContext, systemMessage)
       log.Println(oriContext)
@@ -183,7 +183,7 @@ func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfi
     return
       }
         // 在群組中使用ReplyToken回覆訊息
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply+"\n\nGroup ID: "+event.Source.GroupID)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply)).Do(); err != nil {
     log.Print(err)
     } else {
       //印出reply內容
@@ -335,7 +335,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
 
   // 在群組中使用ReplyToken回覆訊息
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply+"\n\nGroup ID: "+event.Source.GroupID)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply)).Do(); err != nil {
   log.Print(err)
   } else {
     //印出reply內容
