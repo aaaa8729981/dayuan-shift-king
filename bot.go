@@ -134,25 +134,57 @@ func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile strin
 
   for i := 0; i < count; i++ {
     log.Printf("等待30分鐘，然後觸發第 %d 次 SumAll\n", i+1)
-    time.Sleep(3 * time.Minute) //先調整為3分鐘測試用
+    time.Sleep(1 * time.Minute) //先調整為3分鐘測試用
+
+    //確保在 event 變數為 nil 時不執行 handleGroupSumAll 函數，避免了空指針異常。
+    if event == nil {
+      log.Println("event 變數為nil")
+      return
+    }
 
     // 触发 SumAll
     log.Printf("觸發第 %d 次 SumAll\n", i+1)
-    handleGroupSumAll(bot, groupID, ":sum_all")
+    handleGroupSumAll(event, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
     lastSumAllTriggerTime = time.Now().In(TaipeiLocation)
   }
 }
 
-func handleGroupSumAll(bot *linebot.Client, groupID string, message string)error{
-  _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
-  if err != nil {
-    log.Printf("handleGroupSumAll發送訊息至群組 %s 時發生錯誤：%v", groupID, err)
-  } else {
-    log.Printf("handleGroupSumAll已成功發送訊息至群組 %s", groupID)
+func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
+  if len(groupMemberProfile) <= 0 {
+    //如果groupMemberProfile為空值，從ENV中獲取GROUPMEMBERPROFILE
+    groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
+    log.Println("handleGroupSumAll從os.Getenv取得GROUPMEMBERPROFILE")
+    log.Println(groupMemberProfile)
+    log.Println("groupMemberProfile 為空值")
   }
-  return err  
+    // Scroll through all the messages in the chat group (in chronological order).
+    oriContext := ""
+    q := summaryQueue.ReadGroupInfo(getGroupID(event))
+    for _, m := range q {
+      // [xxx]: 他講了什麼... 時間
+      oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("2006-01-02 15:04:05"))
+    }
+    // 就是請 ChatGPT 幫你總結
+    oriContext = fmt.Sprintf("%s", oriContext)
+    systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
+
+      //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
+      reply, err := gptChat(oriContext, systemMessage)
+      log.Println(oriContext)
+      if err != nil {
+        fmt.Printf("ChatGPT error: %v\n", err)
+    // 處理錯誤
+    return
+      }
+        // 在群組中使用ReplyToken回覆訊息
+  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply+"\n\nGroup ID: "+event.Source.GroupID)).Do(); err != nil {
+    log.Print(err)
+    } else {
+      //印出reply內容
+      log.Printf("handleGroupSumAll回覆的訊息內容：\n%s", reply)
+}
 }
 
 func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile string) {
@@ -241,6 +273,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
         if isGroupEvent(event) {
           // 在群組中，一樣紀錄起來不回覆。
           outStickerResult := fmt.Sprintf("貼圖訊息: %s ", kw)
+          triggerSumAll(bot, event.Source.GroupID, groupMemberProfile, event)
           handleStoreMsg(event, outStickerResult)
         } else {
           outStickerResult := fmt.Sprintf("貼圖訊息: %s, pkg: %s kw: %s  text: %s", message.StickerID, message.PackageID, kw, message.Text)
