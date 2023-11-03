@@ -143,16 +143,19 @@ func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Even
       return
     }
 
-    // 触发 SumAll
+    //紀錄event的值
+    log.Printf("triggerSumAll裡event變量的值： %+v\n", event)
+
+    // 触发 handleGroupSumAll
     log.Printf("觸發第 %d 次 SumAll\n", i+1)
-    handleGroupSumAll(event, groupMemberProfile)
+    handleGroupSumAll(event.ReplyToken, event, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
     lastSumAllTriggerTime = time.Now().In(TaipeiLocation)
   }
 }
 
-func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
+func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfile string) {
   if len(groupMemberProfile) <= 0 {
     //如果groupMemberProfile為空值，從ENV中獲取GROUPMEMBERPROFILE
     groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
