@@ -136,6 +136,12 @@ func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile strin
     log.Printf("等待30分鐘，然後觸發第 %d 次 SumAll\n", i+1)
     time.Sleep(3 * time.Minute) //先調整為3分鐘測試用
 
+    //確保在 event 變數為 nil 時不執行 handleGroupSumAll 函數，避免了空指針異常。
+    if event == nil {
+      log.Println("event 變數為nil")
+      return
+    }
+
     // 触发 SumAll
     log.Printf("觸發第 %d 次 SumAll\n", i+1)
     handleGroupSumAll(bot, groupID, event)
