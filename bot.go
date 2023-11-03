@@ -15,6 +15,7 @@ import (
 // 定義一個全局變量用於記錄上次觸發sumall的時間
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全域變數
+var savedReplyToken string // 外部變數用於保存 replyToken
 
 func initializeGroup() (string, string){ //func main調用之後取得groupID, groupMemberProfile
   if messageSent {
@@ -97,34 +98,42 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
     // 僅在星期一到星期五执行
     if weekday >= time.Monday && weekday <= time.Friday {
       targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, TaipeiLocation)
-          targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, TaipeiLocation)
+      targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, TaipeiLocation)
 
-          timeToWait1 := calculateWaitTime(targetTime1)
-          timeToWait2 := calculateWaitTime(targetTime2)
+      timeToWait1 := calculateWaitTime(targetTime1)
+      timeToWait2 := calculateWaitTime(targetTime2)
 
-          // 选择等待时间较短的时间来触发消息
-          var timeToWait time.Duration
-          if timeToWait1 < timeToWait2 {
-              timeToWait = timeToWait1
-          } else {
-              timeToWait = timeToWait2
-          }
-      // 等待时间后触发消息
-      <-time.After(timeToWait)
-      sendMessage(bot, groupID, "請各位同仁整理今日工作項目表")
-      // 在觸發 triggerSumAll 前添加日誌
-      log.Println("等待時間已過，觸發 triggerSumAll")
-      // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
-      time.AfterFunc(30*time.Minute, func() {
-        triggerSumAll(bot, groupID, groupMemberProfile, event)
-      })
-      return // 退出當前循環，等待下一輪檢查
-      } 
-    }
-  }
+      // 选择等待时间较短的时间来触发消息
+      var timeToWait time.Duration
+      if timeToWait1 < timeToWait2 {
+        timeToWait = timeToWait1
+        } else {
+          timeToWait = timeToWait2
+        }
 
-// 觸發sumall(在發送pushMessage之後的30分鐘)
-func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string, event *linebot.Event) {
+        waitTimer := time.After(timeToWait)
+        <-waitTimer
+
+          // 等待时间后触发消息
+          <-time.After(timeToWait)
+          sendMessage(bot, groupID, "請各位同仁整理今日工作項目表")
+          // 在觸發 triggerSumAll 前添加日誌
+          log.Println("等待時間已過，觸發 triggerSumAll")
+          // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
+          log.Println("設定計時器，等待觸發 triggerSumAll")
+          time.AfterFunc(3*time.Minute, func() { //為了測試先改為3分鐘，之後要改回來
+            log.Println("觸發 triggerSumAll")
+            triggerSumAll(bot, groupID, groupMemberProfile, event, savedReplyToken)
+          })
+          return // 退出當前循環，等待下一輪檢查
+        }
+      }
+}
+
+// 觸發sumall(在發送pushMessage之後的30分鐘)triggersumall是為了SUMALLTRIGGERCOUNT而存在
+func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string, event *linebot.Event, savedReplyToken string) {
+  log.Println("觸發 triggerSumAll 函數")
+
   count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
   if err != nil {
     log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
@@ -133,10 +142,10 @@ func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile strin
 
   for i := 0; i < count; i++ {
     log.Printf("等待30分鐘，然後觸發第 %d 次 SumAll\n", i+1)
-    time.Sleep(30 * time.Minute)
+    time.Sleep(3 * time.Minute) //為了測試，先改為3分鐘，之後要改回來
 
     // 触发 SumAll
-    log.Printf("觸發第 %d 次 SumAll\n", i+1)
+    log.Printf("觸發第 %d 次 SumAll, event: %v, groupMemberProfile: %s\n", i+1, event, groupMemberProfile)
     handleSumAll(event, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
@@ -360,6 +369,9 @@ func handleStoreMsg(event *linebot.Event, message string) {
     Time:     time.Now().In(TaipeiLocation),
   }
   summaryQueue.AppendGroupInfo(getGroupID(event), m)
+
+  // 在這裡，將 replyToken 儲存到外部變數
+  savedReplyToken = event.ReplyToken
 }
 
 func isGroupEvent(event *linebot.Event) bool {
