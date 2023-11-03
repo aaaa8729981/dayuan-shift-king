@@ -144,55 +144,21 @@ func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile strin
 
     // 触发 SumAll
     log.Printf("觸發第 %d 次 SumAll\n", i+1)
-    handleGroupSumAll(bot, groupID, event)
+    handleGroupSumAll(bot, groupID, ":sum_all")
 
     // 更新上次触发 SumAll 的时间
     lastSumAllTriggerTime = time.Now().In(TaipeiLocation)
   }
 }
 
-func handleGroupSumAll(bot *linebot.Client, groupID string, event *linebot.Event){
-  if len(groupMemberProfile) <= 0 {
-    //如果groupMemberProfile為空值，從ENV中獲取GROUPMEMBERPROFILE
-    groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
-    log.Println("從os.Getenv取得GROUPMEMBERPROFILE")
-    log.Println(groupMemberProfile)
+func handleGroupSumAll(bot *linebot.Client, groupID string, message string)error{
+  _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
+  if err != nil {
+    log.Printf("handleGroupSumAll發送訊息至群組 %s 時發生錯誤：%v", groupID, err)
+  } else {
+    log.Printf("handleGroupSumAll已成功發送訊息至群組 %s", groupID)
   }
-
-  if len(groupMemberProfile) <= 0 {
-    //如果groupMemberProfile仍然為空值，記錄到log
-    log.Println("groupMemberProfile 為空值")
-    return
-  }
-
-    // Scroll through all the messages in the chat group (in chronological order).
-    oriContext := ""
-    q := summaryQueue.ReadGroupInfo(getGroupID(event))
-    for _, m := range q {
-      // [xxx]: 他講了什麼... 時間
-      oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("2006-01-02 15:04:05"))
-    }
-
-      // 就是請 ChatGPT 幫你總結
-  oriContext = fmt.Sprintf("%s", oriContext)
-  systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
-
-    //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
-    reply, err := gptChat(oriContext, systemMessage)
-    log.Println(oriContext)
-    if err != nil {
-      fmt.Printf("ChatGPT error: %v\n", err)
-      // 處理錯誤
-      return
-    }
-
-      // 在群組中使用ReplyToken回覆訊息
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply+"\n\nGroup ID: "+event.Source.GroupID)).Do(); err != nil {
-    log.Print(err)
-    } else {
-      //印出reply內容
-      log.Printf("回覆的訊息內容：\n%s", reply)
-    }
+  return err  
 }
 
 func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile string) {
