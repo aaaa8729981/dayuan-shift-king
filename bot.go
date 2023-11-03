@@ -89,6 +89,7 @@ func sendMessage(bot *linebot.Client, groupID string, message string) error {
 
 // 發送 "上班囉" 消息的函数（在func main一開始就調用此函數）
 func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event, groupMemberProfile string) {
+  fmt.Printf("groupID: %s, workMessageHour1: %d, workMessageMinute1: %d, workMessageHour2: %d, workMessageMinute2: %d, event: %+v, groupMemberProfile: %s\n", groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event, groupMemberProfile)
 
   for {
     now := time.Now().In(TaipeiLocation)
@@ -117,7 +118,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
       log.Println("等待時間已過，觸發 triggerSumAll")
       // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
       time.AfterFunc(3*time.Minute, func() { //先調整為3分鐘測試用
-        triggerSumAll(bot, groupID, groupMemberProfile, event)
+        triggerSumAll(groupID, groupMemberProfile, event)
       })
       return // 退出當前循環，等待下一輪檢查
       } 
@@ -125,7 +126,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
   }
 
 // 觸發sumall(在發送pushMessage之後的30分鐘)
-func triggerSumAll(bot *linebot.Client, groupID string, groupMemberProfile string, event *linebot.Event) {
+func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Event) {
   count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
   if err != nil {
     log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
@@ -273,7 +274,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
         if isGroupEvent(event) {
           // 在群組中，一樣紀錄起來不回覆。
           outStickerResult := fmt.Sprintf("貼圖訊息: %s ", kw)
-          triggerSumAll(bot, event.Source.GroupID, groupMemberProfile, event)
+          triggerWorkMessage(bot, event.Source.GroupID, 11, 0, 20, 30, event, "")
+          triggerSumAll(event.Source.GroupID, groupMemberProfile, event)
           handleStoreMsg(event, outStickerResult)
         } else {
           outStickerResult := fmt.Sprintf("貼圖訊息: %s, pkg: %s kw: %s  text: %s", message.StickerID, message.PackageID, kw, message.Text)
