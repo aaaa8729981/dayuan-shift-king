@@ -210,7 +210,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
           //紀錄groupID的值
           log.Printf("func callbackHandler groupID值:  %s\n", event.Source.GroupID)
           handleStoreMsg(event, message.Text)
-          triggerSumAll(event.Source.GroupID, groupMemberProfile, event)
         }
 
       // Handle only on Sticker message
@@ -234,7 +233,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
           // 在群組中，一樣紀錄起來不回覆。
           outStickerResult := fmt.Sprintf("貼圖訊息: %s ", kw)
           triggerWorkMessage(bot, event.Source.GroupID, 11, 0, 20, 30, event, "")
-          triggerSumAll(event.Source.GroupID, groupMemberProfile, event)
           handleStoreMsg(event, outStickerResult)
         } else {
           outStickerResult := fmt.Sprintf("貼圖訊息: %s, pkg: %s kw: %s  text: %s", message.StickerID, message.PackageID, kw, message.Text)
