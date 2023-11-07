@@ -142,7 +142,7 @@ func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Even
     log.Printf("等待10分鐘，然後觸發第 %d 次 SumAll\n", i+1)
     time.Sleep(10 * time.Minute) 
 
-    log.Printf("触发时间：%s\n", time.Now().In(TaipeiLocation))
+    log.Println("觸發時間：", time.Now().In(TaipeiLocation))
     //確保在 event 變數為 nil 時不執行 handleGroupSumAll 函數，避免了空指針異常。
     if event == nil {
       log.Println("func triggerSumAll event 變數為nil，不執行handleGroupSumAll")
