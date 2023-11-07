@@ -119,7 +119,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 
       // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
       time.AfterFunc(30*time.Minute, func() { 
-        log.Println("等待時間30min已過，觸發 triggerSumAll with groupID: %s, groupMemberProfile: %s, event: %+v\n", groupID, groupMemberProfile, event)
+        log.Printf("等待時間30min已過，觸發 triggerSumAll with groupID: %s, groupMemberProfile: %s, event: %+v\n", groupID, groupMemberProfile, event)
         triggerSumAll(groupID, groupMemberProfile, event)
       })
       return // 退出當前循環，等待下一輪檢查
@@ -142,7 +142,7 @@ func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Even
     log.Printf("等待10分鐘，然後觸發第 %d 次 SumAll\n", i+1)
     time.Sleep(10 * time.Minute) 
 
-    log.Printf"触发时间：%s\n", time.Now().In(TaipeiLocation))
+    log.Printf("触发时间：%s\n", time.Now().In(TaipeiLocation))
     //確保在 event 變數為 nil 時不執行 handleGroupSumAll 函數，避免了空指針異常。
     if event == nil {
       log.Println("func triggerSumAll event 變數為nil，不執行handleGroupSumAll")
@@ -169,7 +169,7 @@ func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfi
     //添加handleGroupSumAll的log
   log.Printf("handleGroupSumAll：Event Information: %+v\n", event)
     // Scroll through all the messages in the chat group (in chronological order).
-  
+
     oriContext := ""
     q := summaryQueue.ReadGroupInfo(getGroupID(event))
     for _, m := range q {
