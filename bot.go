@@ -78,6 +78,8 @@ func calculateWaitTime(targetTime time.Time) time.Duration {
   if now.After(targetTime) {
       targetTime = targetTime.Add(24 * time.Hour)
     }
+  waitTime := targetTime.Sub(now)
+  log.Printf("Now: %s, Target Time: %s, Wait Time: %s\n", now, targetTime, waitTime)
   return targetTime.Sub(now)
 }
 
@@ -114,10 +116,10 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
       <-time.After(timeToWait)
       log.Println("發送訊息：請各位同仁整理今日工作項目表，謝謝")
       sendMessage(bot, groupID, "請各位同仁整理今日工作項目表，謝謝")
-      // 在觸發 triggerSumAll 前添加日誌
-      log.Println("等待時間已過，觸發 triggerSumAll")
+
       // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
       time.AfterFunc(30*time.Minute, func() { 
+        log.Println("等待時間30min已過，觸發 triggerSumAll with groupID: %s, groupMemberProfile: %s, event: %+v\n", groupID, groupMemberProfile, event)
         triggerSumAll(groupID, groupMemberProfile, event)
       })
       return // 退出當前循環，等待下一輪檢查
@@ -134,20 +136,21 @@ func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Even
   }
 
   for i := 0; i < count; i++ {
-    log.Printf("等待10分鐘，然後觸發第 %d 次 SumAll\n", i+1)
-    time.Sleep(10 * time.Minute) 
-
-    //確保在 event 變數為 nil 時不執行 handleGroupSumAll 函數，避免了空指針異常。
-    if event == nil {
-      log.Println("event 變數為nil")
-      return
-    }
-
     //紀錄event的值
     log.Printf("triggerSumAll裡event變量的值： %+v\n", event)
 
+    log.Printf("等待10分鐘，然後觸發第 %d 次 SumAll\n", i+1)
+    time.Sleep(10 * time.Minute) 
+
+    log.Printf"触发时间：%s\n", time.Now().In(TaipeiLocation))
+    //確保在 event 變數為 nil 時不執行 handleGroupSumAll 函數，避免了空指針異常。
+    if event == nil {
+      log.Println("func triggerSumAll event 變數為nil，不執行handleGroupSumAll")
+      return
+    }
+
     // 触发 handleGroupSumAll
-    log.Printf("觸發第 %d 次 SumAll\n", i+1)
+    log.Printf("觸發第 %d 次 SumAll，參數：event.ReplyToken=%s, event=%+v, groupMemberProfile=%s\n", i+1, event.ReplyToken, event, groupMemberProfile)
     handleGroupSumAll(event.ReplyToken, event, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
@@ -163,7 +166,10 @@ func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfi
     log.Println(groupMemberProfile)
     log.Println("groupMemberProfile 為空值")
   }
+    //添加handleGroupSumAll的log
+  log.Printf("handleGroupSumAll：Event Information: %+v\n", event)
     // Scroll through all the messages in the chat group (in chronological order).
+  
     oriContext := ""
     q := summaryQueue.ReadGroupInfo(getGroupID(event))
     for _, m := range q {
@@ -255,7 +261,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
         } else if isGroupEvent(event) {
           // 如果聊天機器人在群組中，開始儲存訊息。
           //紀錄groupID的值
-          log.Printf("groupID值： %s\n", event.Source.GroupID)
+          log.Printf("func callbackHandler groupID值： %s\n", event.Source.GroupID)
           handleStoreMsg(event, message.Text)
           triggerSumAll(event.Source.GroupID, groupMemberProfile, event)
         }
@@ -300,13 +306,13 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   if len(groupMemberProfile) <= 0 {
     //如果groupMemberProfile為空值，從ENV中獲取GROUPMEMBERPROFILE
     groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
-    log.Println("從os.Getenv取得GROUPMEMBERPROFILE")
+    log.Println("func handleSumAll: 從os.Getenv取得GROUPMEMBERPROFILE")
     log.Println(groupMemberProfile)
   }
 
   if len(groupMemberProfile) <= 0 {
     //如果groupMemberProfile仍然為空值，記錄到log
-    log.Println("groupMemberProfile 為空值")
+    log.Println("func handleSumAll: groupMemberProfile 為空值")
     return
   }
 
@@ -331,7 +337,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   reply, err := gptChat(oriContext, systemMessage)
   log.Println(oriContext)
   if err != nil {
-    fmt.Printf("ChatGPT error: %v\n", err)
+    fmt.Printf("func handleSumAll: ChatGPT error: %v\n", err)
     // 處理錯誤
     return
   }
@@ -341,7 +347,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   log.Print(err)
   } else {
     //印出reply內容
-    log.Printf("回覆的訊息內容：\n%s", reply)
+    log.Printf("func handleSumAll: 回覆的訊息內容：\n%s", reply)
   }
 }
 
