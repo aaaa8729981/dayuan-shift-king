@@ -28,9 +28,17 @@ func calculateWaitTime(targetTime time.Time) time.Duration {
 }
 
 // 函数用于发送消息
-func sendMessage(bot *linebot.Client, groupID string, message string) error {
+func sendMessage(bot *linebot.Client, groupID string, message string, event *linebot.Event) error {
   _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
-  return err
+  if err != nil {
+    return err
+  }
+  //在发送消息后触发 triggerSumAll
+  time.AfterFunc(10*time.Minute, func() { 
+    log.Printf("10分钟后触发 triggerSumAll with groupID: %s, groupMemberProfile: %s, event: %+v\n", groupID, groupMemberProfile, event)
+    triggerSumAll(groupID, groupMemberProfile, event)
+})
+return nil
 }
 
 // 發送 "上班囉" 消息的函数（在func main一開始就調用此函數）
@@ -59,19 +67,14 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
       // 等待时间后触发消息
       <-time.After(timeToWait)
       log.Println("發送訊息：請各位同仁整理今日工作項目表，謝謝")
-      sendMessage(bot, groupID, "請各位同仁整理今日工作項目表，謝謝")
+      sendMessage(bot, groupID, "請各位同仁整理今日工作項目表，謝謝", event)
 
-      // 使用 time.AfterFunc 安排在30分鐘後觸發 triggerSumAll 函數
-      time.AfterFunc(30*time.Minute, func() { 
-        log.Printf("等待時間30min已過，觸發 triggerSumAll with groupID: %s, groupMemberProfile: %s, event: %+v\n", groupID, groupMemberProfile, event)
-        triggerSumAll(groupID, groupMemberProfile, event)
-      })
       return // 退出當前循環，等待下一輪檢查
       } 
     }
   }
 
-// 觸發sumall(在發送pushMessage之後的30分鐘)
+// 觸發sumall(在發送pushMessage之後的10分鐘)
 func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Event) {
   count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
   if err != nil {
@@ -111,7 +114,7 @@ func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfi
     log.Println("groupMemberProfile 為空值")
   }
     //添加handleGroupSumAll的log
-  log.Printf("handleGroupSumAll：Event Information: %+v\n", event)
+  log.Printf("handleGroupSumAll: Event Information: %+v\n", event)
     // Scroll through all the messages in the chat group (in chronological order).
 
     oriContext := ""
@@ -122,7 +125,7 @@ func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfi
     }
     // 就是請 ChatGPT 幫你總結
     oriContext = fmt.Sprintf("%s", oriContext)
-    systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
+    systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙列出所有人的訊息。然後，請整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
 
       //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
       reply, err := gptChat(oriContext, systemMessage)
@@ -137,7 +140,7 @@ func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfi
     log.Print(err)
     } else {
       //印出reply內容
-      log.Printf("handleGroupSumAll回覆的訊息內容：\n%s", reply)
+      log.Printf("handleGroupSumAll回覆的訊息內容: \n%s", reply)
 }
 }
 
@@ -205,7 +208,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
         } else if isGroupEvent(event) {
           // 如果聊天機器人在群組中，開始儲存訊息。
           //紀錄groupID的值
-          log.Printf("func callbackHandler groupID值： %s\n", event.Source.GroupID)
+          log.Printf("func callbackHandler groupID值:  %s\n", event.Source.GroupID)
           handleStoreMsg(event, message.Text)
           triggerSumAll(event.Source.GroupID, groupMemberProfile, event)
         }
@@ -275,7 +278,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
 
   // 就是請 ChatGPT 幫你總結
   oriContext = fmt.Sprintf("%s", oriContext)
-  systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
+  systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙列出所有人的訊息。然後，請整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
 
   //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
   reply, err := gptChat(oriContext, systemMessage)
