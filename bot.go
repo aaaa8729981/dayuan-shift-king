@@ -16,62 +16,6 @@ import (
 var lastSumAllTriggerTime time.Time
 var groupMemberProfile string // 將 groupMemberProfile 變數宣告為全域變數
 
-func initializeGroup() (string, string){ //func main調用之後取得groupID, groupMemberProfile
-  if messageSent {
-    // 消息已经发送，不需要再发送
-    return "", ""
-  }
-
-  // 从 env 中获取 LINEBOTGROUP_ID
-  groupIDFromEnv := os.Getenv("LINEBOTGROUP_ID")
-
-  var groupID string
-  if groupIDFromEnv != "" {
-    groupID = groupIDFromEnv //groupID是從env裡面設定的
-    log.Println("groupID:", groupID)  
-  } else {
-    // 如果ENV檔案中groupID為空值，寫入log並跳過這功能
-    log.Println("未设置 Env 的 groupID")
-    return "", ""
-  }
-
-  // 透过 groupID 取得指定群组成员列表 (userID)
-  memberIDsResponse, err := bot.GetGroupMemberIDs(groupID, "").Do()
-  var userNames []string
-
-  if err != nil {
-      log.Println("透過env取得群組成員列表:") //取得失敗時，不判定為錯誤。userNames繼續維持為空值
-  } else {
-    for _, userID := range memberIDsResponse.MemberIDs {
-      userNames = append(userNames, userID)
-    }
-    log.Println("群組成員 id 列表:", userNames)
-
-    // 僅在有成功取得成員列表時使用 userNames 變數
-    groupMemberProfile = ""
-    if len(userNames) > 0 { //如果userNames長度>0表示有成功
-      for _, userName := range userNames {
-        profile, err := bot.GetGroupMemberProfile(groupID, userName).Do()
-        if err != nil {
-          log.Printf("獲取群組成員名稱資料錯誤 (用户名: %s): %v", userName, err)
-      } else {
-          groupMemberProfile += profile.DisplayName + ","
-        }
-      }
-    } else {
-    // userNames 为空，从环境变量中获取 groupMemberProfile
-      groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
-    }
-  groupMemberProfile = strings.TrimSuffix(groupMemberProfile, ",")
-  log.Println("群組成員名稱:", groupMemberProfile)
-
-    }
-  //標記訊息已發送（才不會一直發送訊息）
-  messageSent = true
-
-  return groupID, groupMemberProfile
-}
-
 // 函数用于计算等待的时间
 func calculateWaitTime(targetTime time.Time) time.Duration {
   now := time.Now().In(TaipeiLocation)
@@ -139,7 +83,7 @@ func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Even
     //紀錄event的值
     log.Printf("triggerSumAll裡event變量的值： %+v\n", event)
 
-    log.Printf("等待10分鐘，然後觸發第 %d 次 SumAll\n", i+1)
+    log.Printf("等待10分鐘，10分後觸發第 %d 次 SumAll\n", i+1)
     time.Sleep(10 * time.Minute) 
 
     log.Println("觸發時間：", time.Now().In(TaipeiLocation))

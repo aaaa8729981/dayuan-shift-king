@@ -43,8 +43,6 @@ const (
   GPT_GPT4_Complete GPT_ACTIONS = 3
 )
 
-var messageSent bool
-
 func main() {
 // 先初始化 TaipeiLocation
   var err error
@@ -94,10 +92,23 @@ func main() {
     workMessageMinute2 = 30 // 设置默认值
   }
 
-  // 調用 initializeGroup 和 triggerWorkMessage
-  groupID, groupMemberProfile := initializeGroup() //調用之後由initializeGroup取得groupID, groupMemberProfile
-  go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, nil, groupMemberProfile)
+  //初始化groupMemberProfile
+  groupMemberProfile := os.Getenv("GROUPMEMBERPROFILE")
 
+  //初始化groupID
+  groupID := os.Getenv("LINEBOTGROUP_ID")
+
+  //如果groupID與groupMemberProfile在ENV中皆已設置，調用triggerWorkMessage
+  if groupID != "" && groupMemberProfile != "" {
+    log.Println("func main groupID:", groupID)
+    log.Println("func main GROUPMEMBERPROFILE:", groupMemberProfile)
+    // 调用 triggerWorkMessage，传递 groupMemberProfile
+    go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, nil, groupMemberProfile)
+  } else {
+    // 如果 ENV 文件中 groupID 或 groupMemberProfile 為空值，寫入 log 並跳過這功能
+    log.Println("ENV 未設置 groupID或groupMemberProfile")
+    return
+  }
 
   //將groupMemberProfile 傳遞給 callbackHandler
   http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
