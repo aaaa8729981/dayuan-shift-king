@@ -144,7 +144,7 @@ func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfi
 }
 }
 
-func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile string) {
+func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile string, workMessageHour1 int, workMessageMinute1 int, workMessageHour2 int, workMessageMinute2 int) {
   events, err := bot.ParseRequest(r)
 
   if err != nil {
@@ -208,7 +208,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
         } else if isGroupEvent(event) {
           // 如果聊天機器人在群組中，開始儲存訊息。
           //紀錄groupID的值
-          log.Printf("func callbackHandler groupID值:  %s\n", event.Source.GroupID)
+          log.Printf("func callbackHandler回傳的event: %+v\n", event)
+          triggerWorkMessage(bot, event.Source.GroupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event, "")
           handleStoreMsg(event, message.Text)
         }
 
@@ -232,7 +233,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
         if isGroupEvent(event) {
           // 在群組中，一樣紀錄起來不回覆。
           outStickerResult := fmt.Sprintf("貼圖訊息: %s ", kw)
-          triggerWorkMessage(bot, event.Source.GroupID, 11, 0, 20, 30, event, "")
           handleStoreMsg(event, outStickerResult)
         } else {
           outStickerResult := fmt.Sprintf("貼圖訊息: %s, pkg: %s kw: %s  text: %s", message.StickerID, message.PackageID, kw, message.Text)

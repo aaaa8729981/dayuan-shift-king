@@ -112,7 +112,7 @@ func main() {
 
   //將groupMemberProfile 傳遞給 callbackHandler
   http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-    callbackHandler(w, r, groupMemberProfile)
+    callbackHandler(w, r, groupMemberProfile, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2)
   })
 
   port := os.Getenv("PORT")
