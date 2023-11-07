@@ -30,6 +30,8 @@ var summaryQueue GroupDB
 var stickerRedeemable bool
 var enableRedeem string
 var TaipeiLocation *time.Location  //TaipeiLocation redeclared in this block
+var globalEvent *linebot.Event
+
 
 const RedeemStickerPID = "789"
 const RedeemStickerSID = "10856"

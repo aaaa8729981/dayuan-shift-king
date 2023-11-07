@@ -76,6 +76,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 
 // 觸發sumall(在發送pushMessage之後的10分鐘)
 func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Event) {
+
   count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
   if err != nil {
     log.Println("無法解析SUMALLTRIGGERCOUNT環境變量", err)
@@ -98,14 +99,14 @@ func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Even
 
     // 触发 handleGroupSumAll
     log.Printf("觸發第 %d 次 SumAll，參數：event.ReplyToken=%s, event=%+v, groupMemberProfile=%s\n", i+1, event.ReplyToken, event, groupMemberProfile)
-    handleGroupSumAll(event.ReplyToken, event, groupMemberProfile)
+    handleGroupSumAll(event, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
     lastSumAllTriggerTime = time.Now().In(TaipeiLocation)
   }
 }
 
-func handleGroupSumAll(replyToken string, event *linebot.Event, groupMemberProfile string) {
+func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
   if len(groupMemberProfile) <= 0 {
     //如果groupMemberProfile為空值，從ENV中獲取GROUPMEMBERPROFILE
     groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
@@ -157,6 +158,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
   }
 
   for _, event := range events {
+    globalEvent = event // 在 callbackHandler 中更新全域的 globalEvent 變量
+
     if event.Type == linebot.EventTypeMessage {
       switch message := event.Message.(type) {
       // Handle only on text message
@@ -209,7 +212,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
           // 如果聊天機器人在群組中，開始儲存訊息。
           //紀錄groupID的值
           log.Printf("func callbackHandler回傳的event: %+v\n", event)
-          triggerWorkMessage(bot, event.Source.GroupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event, "")
           handleStoreMsg(event, message.Text)
         }
 
