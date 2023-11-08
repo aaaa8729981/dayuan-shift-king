@@ -120,9 +120,14 @@ func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
 
     oriContext := ""
     q := summaryQueue.ReadGroupInfo(getGroupID(event))
+    today := time.Now().In(TaipeiLocation)
+
     for _, m := range q {
+      msgTime := m.Time.In(TaipeiLocation)
+      if msgTime.Year() == today.Year() && msgTime.YearDay() == today.YearDay() {
+      // 只處理今日的訊息
+      oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, msgTime.Format("15:04"))
       // [xxx]: 他講了什麼... 時間
-      oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("2006-01-02 15:04:05"))
     }
     // 就是請 ChatGPT 幫你總結
     oriContext = fmt.Sprintf("%s", oriContext)
@@ -136,13 +141,18 @@ func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
     // 處理錯誤
     return
       }
-        // 在群組中使用ReplyToken回覆訊息
+      // 在群組中使用ReplyToken回覆訊息
+      if reply == "" {
+      reply = "[群組自動統整今日沒有相關訊息]"
+    }
+
   if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply)).Do(); err != nil {
     log.Print(err)
     } else {
       //印出reply內容
       log.Printf("handleGroupSumAll回覆的訊息內容: \n%s", reply)
-}
+    }
+  }
 }
 
 func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile string, workMessageHour1 int, workMessageMinute1 int, workMessageHour2 int, workMessageMinute2 int) {
@@ -266,9 +276,14 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
+  today := time.Now().In(TaipeiLocation)
   for _, m := range q {
-    // [xxx]: 他講了什麼... 時間
-    oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("2006-01-02 15:04:05"))
+    msgTime := m.Time.In(TaipeiLocation)
+    if msgTime.Year() == today.Year() && msgTime.Year() == today.YearDay() {
+      //只處理今天的訊息
+      oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, msgTime.Format("15:04"))
+      // [xxx]: 他講了什麼... 時間
+    }
   }
 
   // 訊息內先回，再來總結。
@@ -287,6 +302,10 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
     fmt.Printf("func handleSumAll: ChatGPT error: %v\n", err)
     // 處理錯誤
     return
+  }
+
+  if reply == "" {
+    reply = "[統整]今天沒有相關訊息"
   }
 
   // 在群組中使用ReplyToken回覆訊息
