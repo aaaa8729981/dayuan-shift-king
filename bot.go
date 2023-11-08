@@ -277,6 +277,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   oriContext := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
   today := time.Now().In(TaipeiLocation)
+
   for _, m := range q {
     msgTime := m.Time.In(TaipeiLocation)
     if msgTime.Year() == today.Year() && msgTime.Year() == today.YearDay() {
@@ -290,6 +291,9 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   // if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("好的，總結文字已經發給您了"+userName)).Do(); err != nil {
   // 	log.Print(err)
   // }
+  if oriContext == "" {
+    oriContext = "[統整]今天沒有相關訊息"
+  }
 
   // 就是請 ChatGPT 幫你總結
   oriContext = fmt.Sprintf("%s", oriContext)
@@ -321,12 +325,14 @@ func handleListAll(event *linebot.Event) {
   reply := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
   today := time.Now().In(TaipeiLocation)
+
   for _, m := range q {
-  //檢查每條訊息的時間戳是否為今日，並僅統整今日的訊息
-  msgTime := m.Time.In(TaipeiLocation)
-  if msgTime.Year() == today.Year() && msgTime.YearDay() == today.YearDay() {
-    reply = reply + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("15:04"))
+    //檢查每條訊息的時間戳是否為今日，並僅統整今日的訊息
+    msgTime := m.Time.In(TaipeiLocation)
+    if msgTime.Year() == today.Year() && msgTime.YearDay() == today.YearDay() {
+      reply = reply + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("15:04"))
   }
+}
 
   if reply == "" {
     reply = "今日沒有相關訊息"
@@ -335,7 +341,7 @@ func handleListAll(event *linebot.Event) {
   if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
     log.Print(err)
   }
-}}
+}
 
 func handleGPT(action GPT_ACTIONS, event *linebot.Event, message string) {
   switch action {
