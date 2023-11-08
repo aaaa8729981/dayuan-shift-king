@@ -126,7 +126,7 @@ func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
     }
     // 就是請 ChatGPT 幫你總結
     oriContext = fmt.Sprintf("%s", oriContext)
-    systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙列出所有人的訊息。然後，請整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
+    systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，但有部分瑣碎日常資訊讓我無法專心，請幫忙列出重要訊息即可，我關注的是同仁一整天要做什麼事情。然後，請整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有:%s\n\n", groupMemberProfile)
 
       //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
       reply, err := gptChat(oriContext, systemMessage)
@@ -278,7 +278,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
 
   // 就是請 ChatGPT 幫你總結
   oriContext = fmt.Sprintf("%s", oriContext)
-  systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，請幫忙列出所有人的訊息。然後，請整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有：%s\n\n", groupMemberProfile)
+  systemMessage:= fmt.Sprintf("以下你會看到的是一個工作群組中的許多訊息，但有部分瑣碎日常資訊讓我無法專心，請幫忙列出重要訊息即可，我關注的是同仁一整天要做什麼事情。然後，請整理出尚未在近1小時內發言的同仁。千萬不要捏造不存在的內容。\n\n目前在群组中的使用者有:%s\n\n", groupMemberProfile)
 
   //使用chatgpt.go裡面的 func gptChat 处理 oriContext，同時傳送systemMessage
   reply, err := gptChat(oriContext, systemMessage)
@@ -301,14 +301,22 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
 func handleListAll(event *linebot.Event) {
   reply := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
+  today := time.Now().In(TaipeiLocation)
   for _, m := range q {
-    reply = reply + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("2006-01-02 15:04:05"))
+  //檢查每條訊息的時間戳是否為今日，並僅統整今日的訊息
+  msgTime := m.Time.In(TaipeiLocation)
+  if msgTime.Year() == today.Year() && msgTime.YearDay() == today.YearDay() {
+    reply = reply + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, time.Now().In(TaipeiLocation).Format("15:04"))
+  }
+
+  if reply == "" {
+    reply = "今日沒有相關訊息"
   }
 
   if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
     log.Print(err)
   }
-}
+}}
 
 func handleGPT(action GPT_ACTIONS, event *linebot.Event, message string) {
   switch action {
