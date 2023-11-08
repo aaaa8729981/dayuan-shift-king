@@ -280,7 +280,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
 
   for _, m := range q {
     msgTime := m.Time.In(TaipeiLocation)
-    if msgTime.Year() == today.Year() && msgTime.Year() == today.YearDay() {
+    if msgTime.Year() == today.Year() && msgTime.YearDay() == today.YearDay() {
       //只處理今天的訊息
       oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, msgTime.Format("15:04"))
       // [xxx]: 他講了什麼... 時間
