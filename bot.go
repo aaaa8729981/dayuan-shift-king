@@ -120,12 +120,14 @@ func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
 
     oriContext := ""
     q := summaryQueue.ReadGroupInfo(getGroupID(event))
-    today := time.Now().In(TaipeiLocation)
+    currentTime := time.Now().In(TaipeiLocation)
+    fiveHoursAgo := currentTime.Add(-5 * time.Hour)
 
     for _, m := range q {
       msgTime := m.Time.In(TaipeiLocation)
-      if msgTime.Year() == today.Year() && msgTime.YearDay() == today.YearDay() {
-      // 只處理今日的訊息
+      if msgTime.After(fiveHoursAgo) {
+
+      // 只處理過去五小時的訊息
       oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, msgTime.Format("15:04"))
       // [xxx]: 他講了什麼... 時間
     }
@@ -146,7 +148,7 @@ func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
       reply = "[群組自動統整今日沒有相關訊息]"
     }
 
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n\n"+reply)).Do(); err != nil {
     log.Print(err)
     } else {
       //印出reply內容
@@ -276,12 +278,13 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
   q := summaryQueue.ReadGroupInfo(getGroupID(event))
-  today := time.Now().In(TaipeiLocation)
+  currentTime := time.Now().In(TaipeiLocation)
+  fiveHoursAgo := currentTime.Add(-5 *time.Hour)
 
   for _, m := range q {
     msgTime := m.Time.In(TaipeiLocation)
-    if msgTime.Year() == today.Year() && msgTime.YearDay() == today.YearDay() {
-      //只處理今天的訊息
+    if msgTime.After(fiveHoursAgo){
+      //只處理過去五小時的訊息
       oriContext = oriContext + fmt.Sprintf("[%s]: %s . %s\n", m.UserName, m.MsgText, msgTime.Format("15:04"))
       // [xxx]: 他講了什麼... 時間
     }
@@ -313,7 +316,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
 
   // 在群組中使用ReplyToken回覆訊息
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n"+reply)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n\n"+reply)).Do(); err != nil {
   log.Print(err)
   } else {
     //印出reply內容
@@ -335,7 +338,7 @@ func handleListAll(event *linebot.Event) {
 }
 
   if reply == "" {
-    reply = "今日沒有相關訊息"
+    reply = "[條列]今日沒有相關訊息"
   }
 
   if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
