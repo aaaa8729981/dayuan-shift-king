@@ -63,7 +63,7 @@ func gptChat(ori string, systemMessage string) (ret string, err error) {
       Content: ori,
     },
   }
-  
+
   // 在傳送Chat Conversation之前，将Chat Conversation印出到log中
   fmt.Println("Chat Conversation:")
   for _, msg := range conversation {
@@ -75,6 +75,7 @@ func gptChat(ori string, systemMessage string) (ret string, err error) {
     Model:    "gpt-3.5-turbo-16k-0613",
     Messages: conversation,
     Temperature: 0.2,
+    MaxTokens: 10000,
   }
 
   resp, err := client.CreateChatCompletion(ctx, req)

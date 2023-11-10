@@ -52,27 +52,37 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
     // 僅在星期一到星期五执行
     if weekday >= time.Monday && weekday <= time.Friday {
       targetTime1 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour1, workMessageMinute1, 0, 0, TaipeiLocation)
-          targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, TaipeiLocation)
+      targetTime2 := time.Date(now.Year(), now.Month(), now.Day(), workMessageHour2, workMessageMinute2, 0, 0, TaipeiLocation)
 
-          timeToWait1 := calculateWaitTime(targetTime1)
-          timeToWait2 := calculateWaitTime(targetTime2)
+      timeToWait1 := calculateWaitTime(targetTime1)
+      timeToWait2 := calculateWaitTime(targetTime2)
 
-          // 选择等待时间较短的时间来触发消息
-          var timeToWait time.Duration
-          if timeToWait1 < timeToWait2 {
-              timeToWait = timeToWait1
-          } else {
-              timeToWait = timeToWait2
-          }
+      // 选择等待时间较短的时间来触发消息
+      var timeToWait time.Duration
+      if timeToWait1 < timeToWait2 {
+        timeToWait = timeToWait1
+        } else {
+          timeToWait = timeToWait2
+
+        }
       // 等待时间后触发消息
       <-time.After(timeToWait)
       log.Println("發送訊息：請各位同仁整理今日工作項目表，謝謝")
       sendMessage(bot, groupID, "請各位同仁整理今日工作項目表，謝謝", event)
 
-      return // 退出當前循環，等待下一輪檢查
+      if now.Hour() >= workMessageHour1 && now.Minute() >= workMessageMinute1 {
+        targetTime1 = targetTime1.Add(24 * time.Hour)
+      }
+
+      //Check if it's time for the second message
+      if now.Hour() >= workMessageHour2 && now.Minute() >= workMessageMinute2 {
+        //Set the target time for the next day
+        targetTime2 = targetTime2.Add(24 * time.Hour)
+
       } 
     }
   }
+}
 
 // 觸發sumall(在發送pushMessage之後的10分鐘)
 func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Event) {
