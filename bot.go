@@ -76,13 +76,20 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 func sendMessage(bot *linebot.Client, groupID string, message string, event *linebot.Event) error {
   _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
   if err != nil {
+    log.Printf("sendMessage發送消息錯誤：%v\n", err)
     return err
   }
+
   //在发送消息后触发 triggerSumAll
-  time.AfterFunc(10*time.Minute, func() { 
-    log.Printf("10分钟后触发 triggerSumAll with groupID: %s, groupMemberProfile: %s, event: %+v\n", groupID, groupMemberProfile, event)
-    triggerSumAll(groupID, groupMemberProfile, event)
-})
+  //先確認globalEvent的值
+  if globalEvent != nil {
+    time.AfterFunc(10*time.Minute, func() { 
+    log.Printf("10分鐘後觸發 triggerSumAll with groupID: %s, groupMemberProfile: %s, event: %+v\n", groupID, groupMemberProfile, globalEvent)
+    triggerSumAll(groupID, groupMemberProfile, globalEvent)
+    })
+    } else {
+    log.Println("globalEvent is nil in triggerSumAll")
+  }
 return nil
 }
 
