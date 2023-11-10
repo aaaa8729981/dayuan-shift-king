@@ -53,7 +53,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
         }
       // 等待时间后触发消息
       <-time.After(timeToWait)
-      sendMessage(bot, groupID, "請各位同仁整理今日工作項目表，謝謝", event)
+      sendMessage(bot, groupID, "請各位同仁整理今日工作項目表，謝謝", globalEvent)
       log.Printf("發送訊息：請各位同仁整理今日工作項目表，謝謝")
 
 
@@ -73,7 +73,7 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
 }
 
 // 函数用于发送消息
-func sendMessage(bot *linebot.Client, groupID string, message string, event *linebot.Event) error {
+func sendMessage(bot *linebot.Client, groupID string, message string, globalEvent *linebot.Event) error {
   _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
   if err != nil {
     log.Printf("sendMessage發送消息錯誤：%v\n", err)
@@ -94,7 +94,7 @@ return nil
 }
 
 // 觸發sumall(在發送pushMessage之後的10分鐘)
-func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Event) {
+func triggerSumAll(groupID string, groupMemberProfile string, globalEvent*linebot.Event) {
 
   count, err := strconv.Atoi(os.Getenv("SUMALLTRIGGERCOUNT"))
   if err != nil {
@@ -104,28 +104,28 @@ func triggerSumAll(groupID string, groupMemberProfile string, event*linebot.Even
 
   for i := 0; i < count; i++ {
     //紀錄event的值
-    log.Printf("triggerSumAll裡event變量的值： %+v\n", event)
+    log.Printf("triggerSumAll裡event變量的值： %+v\n", globalEvent)
 
     log.Printf("等待10分鐘，10分後觸發第 %d 次 SumAll\n", i+1)
     time.Sleep(10 * time.Minute) 
 
     log.Println("觸發時間：", time.Now().In(TaipeiLocation))
     //確保在 event 變數為 nil 時不執行 handleGroupSumAll 函數，避免了空指針異常。
-    if event == nil {
+    if globalEvent == nil {
       log.Println("func triggerSumAll event 變數為nil，不執行handleGroupSumAll")
       return
     }
 
     // 触发 handleGroupSumAll
-    log.Printf("觸發第 %d 次 SumAll，參數：event.ReplyToken=%s, event=%+v, groupMemberProfile=%s\n", i+1, event.ReplyToken, event, groupMemberProfile)
-    handleGroupSumAll(event, groupMemberProfile)
+    log.Printf("觸發第 %d 次 SumAll，參數：event.ReplyToken=%s, event=%+v, groupMemberProfile=%s\n", i+1, globalEvent.ReplyToken, globalEvent, groupMemberProfile)
+    handleGroupSumAll(globalEvent, groupMemberProfile)
 
     // 更新上次触发 SumAll 的时间
     lastSumAllTriggerTime = time.Now().In(TaipeiLocation)
   }
 }
 
-func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
+func handleGroupSumAll(globalEvent *linebot.Event, groupMemberProfile string) {
   if len(groupMemberProfile) <= 0 {
     //如果groupMemberProfile為空值，從ENV中獲取GROUPMEMBERPROFILE
     groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
@@ -134,11 +134,11 @@ func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
     log.Println("groupMemberProfile 為空值")
   }
     //添加handleGroupSumAll的log
-  log.Printf("handleGroupSumAll: Event Information: %+v\n", event)
+  log.Printf("handleGroupSumAll: Event Information: %+v\n", globalEvent)
     // Scroll through all the messages in the chat group (in chronological order).
 
     oriContext := ""
-    q := summaryQueue.ReadGroupInfo(getGroupID(event))
+    q := summaryQueue.ReadGroupInfo(getGroupID(globalEvent))
     currentTime := time.Now().In(TaipeiLocation)
     fiveHoursAgo := currentTime.Add(-5 * time.Hour)
 
@@ -167,7 +167,7 @@ func handleGroupSumAll(event *linebot.Event, groupMemberProfile string) {
       reply = "[群組自動統整今日沒有相關訊息]"
     }
 
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n\n"+reply)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage("謝謝大家\n\n"+reply)).Do(); err != nil {
     log.Print(err)
     } else {
       //印出reply內容
@@ -200,50 +200,50 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
           // New feature.
           if IsRedemptionEnabled() {
             if stickerRedeemable {
-              handleGPT(GPT_Complete, event, message.Text)
+              handleGPT(GPT_Complete, globalEvent, message.Text)
               stickerRedeemable = false
             } else {
-              handleRedeemRequestMsg(event)
+              handleRedeemRequestMsg(globalEvent)
             }
           } else {
             // Original one
-            handleGPT(GPT_Complete, event, message.Text)
+            handleGPT(GPT_Complete, globalEvent, message.Text)
           }
         } else if strings.Contains(message.Text, ":gpt4") {
           // New feature.
           if IsRedemptionEnabled() {
             if stickerRedeemable {
-              handleGPT(GPT_GPT4_Complete, event, message.Text)
+              handleGPT(GPT_GPT4_Complete, globalEvent, message.Text)
               stickerRedeemable = false
             } else {
-              handleRedeemRequestMsg(event)
+              handleRedeemRequestMsg(globalEvent)
             }
           } else {
             // Original one
-            handleGPT(GPT_GPT4_Complete, event, message.Text)
+            handleGPT(GPT_GPT4_Complete, globalEvent, message.Text)
           }
         } else if strings.Contains(message.Text, ":draw") {
           // New feature.
           if IsRedemptionEnabled() {
             if stickerRedeemable {
-              handleGPT(GPT_Draw, event, message.Text)
+              handleGPT(GPT_Draw, globalEvent, message.Text)
               stickerRedeemable = false
             } else {
-              handleRedeemRequestMsg(event)
+              handleRedeemRequestMsg(globalEvent)
             }
           } else {
             // Original one
-            handleGPT(GPT_Draw, event, message.Text)
+            handleGPT(GPT_Draw, globalEvent, message.Text)
           }
         } else if strings.EqualFold(message.Text, ":list_all") && isGroupEvent(event) {
-          handleListAll(event)
+          handleListAll(globalEvent)
         } else if strings.EqualFold(message.Text, ":sum_all") && isGroupEvent(event) {
-          handleSumAll(event, groupMemberProfile)
-        } else if isGroupEvent(event) {
+          handleSumAll(globalEvent, groupMemberProfile)
+        } else if isGroupEvent(globalEvent) {
           // 如果聊天機器人在群組中，開始儲存訊息。
           //紀錄groupID的值
           log.Printf("func callbackHandler回傳的message: %+v\n", message.Text)
-          handleStoreMsg(event, message.Text)
+          handleStoreMsg(globalEvent, message.Text)
         }
 
       // Handle only on Sticker message
@@ -257,21 +257,21 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
         if IsRedemptionEnabled() {
           if message.PackageID == RedeemStickerPID && message.StickerID == RedeemStickerSID {
             stickerRedeemable = true
-            if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("你的賦能功能啟動了！")).Do(); err != nil {
+            if _, err = bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage("你的賦能功能啟動了！")).Do(); err != nil {
               log.Print(err)
             }
           }
         }
 
-        if isGroupEvent(event) {
+        if isGroupEvent(globalEvent) {
           // 在群組中，一樣紀錄起來不回覆。
           outStickerResult := fmt.Sprintf("貼圖訊息: %s ", kw)
-          handleStoreMsg(event, outStickerResult)
+          handleStoreMsg(globalEvent, outStickerResult)
         } else {
           outStickerResult := fmt.Sprintf("貼圖訊息: %s, pkg: %s kw: %s  text: %s", message.StickerID, message.PackageID, kw, message.Text)
 
           // 1 on 1 就回覆
-          if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(outStickerResult)).Do(); err != nil {
+          if _, err = bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage(outStickerResult)).Do(); err != nil {
             log.Print(err)
           }
         }
@@ -280,7 +280,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
   }
 }
 
-func handleSumAll(event *linebot.Event, groupMemberProfile string) {
+func handleSumAll(globalEvent *linebot.Event, groupMemberProfile string) {
   if len(groupMemberProfile) <= 0 {
     //如果groupMemberProfile為空值，從ENV中獲取GROUPMEMBERPROFILE
     groupMemberProfile = os.Getenv("GROUPMEMBERPROFILE")
@@ -296,7 +296,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
 
   // Scroll through all the messages in the chat group (in chronological order).
   oriContext := ""
-  q := summaryQueue.ReadGroupInfo(getGroupID(event))
+  q := summaryQueue.ReadGroupInfo(getGroupID(globalEvent))
   currentTime := time.Now().In(TaipeiLocation)
   fiveHoursAgo := currentTime.Add(-5 *time.Hour)
 
@@ -335,7 +335,7 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
 
   // 在群組中使用ReplyToken回覆訊息
-  if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("謝謝大家\n\n"+reply)).Do(); err != nil {
+  if _, err = bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage("謝謝大家\n\n"+reply)).Do(); err != nil {
   log.Print(err)
   } else {
     //印出reply內容
@@ -343,9 +343,9 @@ func handleSumAll(event *linebot.Event, groupMemberProfile string) {
   }
 }
 
-func handleListAll(event *linebot.Event) {
+func handleListAll(globalEvent *linebot.Event) {
   reply := ""
-  q := summaryQueue.ReadGroupInfo(getGroupID(event))
+  q := summaryQueue.ReadGroupInfo(getGroupID(globalEvent))
   today := time.Now().In(TaipeiLocation)
 
   for _, m := range q {
@@ -360,30 +360,30 @@ func handleListAll(event *linebot.Event) {
     reply = "[條列]今日沒有相關訊息"
   }
 
-  if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
+  if _, err := bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
     log.Print(err)
   }
 }
 
-func handleGPT(action GPT_ACTIONS, event *linebot.Event, message string) {
+func handleGPT(action GPT_ACTIONS, globalEvent *linebot.Event, message string) {
   switch action {
   case GPT_Complete:
     reply := gptGPT3CompleteContext(message)
-    if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
+    if _, err := bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
       log.Print(err)
     }
   case GPT_GPT4_Complete:
     reply := gptGPT4CompleteContext(message)
-    if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
+    if _, err := bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
       log.Print(err)
     }
   case GPT_Draw:
     if reply, err := gptImageCreate(message); err != nil {
-      if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("無法正確顯示圖形.")).Do(); err != nil {
+      if _, err := bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage("無法正確顯示圖形.")).Do(); err != nil {
         log.Print(err)
       }
     } else {
-      if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("根據你的提示，畫出以下圖片："), linebot.NewImageMessage(reply, reply)).Do(); err != nil {
+      if _, err := bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage("根據你的提示，畫出以下圖片："), linebot.NewImageMessage(reply, reply)).Do(); err != nil {
         log.Print(err)
       }
     }
@@ -391,23 +391,23 @@ func handleGPT(action GPT_ACTIONS, event *linebot.Event, message string) {
 
 }
 
-func handleRedeemRequestMsg(event *linebot.Event) {
+func handleRedeemRequestMsg(globalEvent *linebot.Event) {
   // First, obtain the user's Display Name (i.e., the name displayed).
-  userName := event.Source.UserID
-  userProfile, err := bot.GetProfile(event.Source.UserID).Do()
+  userName := globalEvent.Source.UserID
+  userProfile, err := bot.GetProfile(globalEvent.Source.UserID).Do()
   if err == nil {
     userName = userProfile.DisplayName
   }
 
-  if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(userName+":你需要買貼圖，開啟這個功能"), linebot.NewStickerMessage(RedeemStickerPID, RedeemStickerSID)).Do(); err != nil {
+  if _, err := bot.ReplyMessage(globalEvent.ReplyToken, linebot.NewTextMessage(userName+":你需要買貼圖，開啟這個功能"), linebot.NewStickerMessage(RedeemStickerPID, RedeemStickerSID)).Do(); err != nil {
     log.Print(err)
   }
 }
 
-func handleStoreMsg(event *linebot.Event, message string) {
+func handleStoreMsg(globalEvent *linebot.Event, message string) {
   // Get user display name. (It is nick name of the user define.)
-  userName := event.Source.UserID
-  userProfile, err := bot.GetProfile(event.Source.UserID).Do()
+  userName := globalEvent.Source.UserID
+  userProfile, err := bot.GetProfile(globalEvent.Source.UserID).Do()
   if err == nil {
     userName = userProfile.DisplayName
   }
@@ -418,18 +418,18 @@ func handleStoreMsg(event *linebot.Event, message string) {
     UserName: userName,
     Time:     time.Now().In(TaipeiLocation),
   }
-  summaryQueue.AppendGroupInfo(getGroupID(event), m)
+  summaryQueue.AppendGroupInfo(getGroupID(globalEvent), m)
 }
 
-func isGroupEvent(event *linebot.Event) bool {
-  return event.Source.GroupID != "" || event.Source.RoomID != ""
+func isGroupEvent(globalEvent *linebot.Event) bool {
+  return globalEvent.Source.GroupID != "" || globalEvent.Source.RoomID != ""
 }
 
-func getGroupID(event *linebot.Event) string {
-  if event.Source.GroupID != "" {
-    return event.Source.GroupID
-  } else if event.Source.RoomID != "" {
-    return event.Source.RoomID
+func getGroupID(globalEvent *linebot.Event) string {
+  if globalEvent.Source.GroupID != "" {
+    return globalEvent.Source.GroupID
+  } else if globalEvent.Source.RoomID != "" {
+    return globalEvent.Source.RoomID
   }
 
   return ""
