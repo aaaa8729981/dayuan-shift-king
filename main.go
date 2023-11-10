@@ -105,6 +105,7 @@ func main() {
     log.Println("func main groupID:", groupID)
     log.Println("func main GROUPMEMBERPROFILE:", groupMemberProfile)
     // 调用 triggerWorkMessage，传递 groupMemberProfile
+    go triggerWorkMessage(bot, groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, nil, groupMemberProfile)
   } else {
     // 如果 ENV 文件中 groupID 或 groupMemberProfile 為空值，寫入 log 並跳過這功能
     log.Println("ENV 未設置 groupID或groupMemberProfile")

@@ -27,20 +27,6 @@ func calculateWaitTime(targetTime time.Time) time.Duration {
   return targetTime.Sub(now)
 }
 
-// 函数用于发送消息
-func sendMessage(bot *linebot.Client, groupID string, message string, event *linebot.Event) error {
-  _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
-  if err != nil {
-    return err
-  }
-  //在发送消息后触发 triggerSumAll
-  time.AfterFunc(10*time.Minute, func() { 
-    log.Printf("10分钟后触发 triggerSumAll with groupID: %s, groupMemberProfile: %s, event: %+v\n", groupID, groupMemberProfile, event)
-    triggerSumAll(groupID, groupMemberProfile, event)
-})
-return nil
-}
-
 // 發送 "上班囉" 消息的函数（在func main一開始就調用此函數）
 func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2 int, event *linebot.Event, groupMemberProfile string) {
   fmt.Printf("groupID: %s, workMessageHour1: %d, workMessageMinute1: %d, workMessageHour2: %d, workMessageMinute2: %d, event: %+v, groupMemberProfile: %s\n", groupID, workMessageHour1, workMessageMinute1, workMessageHour2, workMessageMinute2, event, groupMemberProfile)
@@ -67,10 +53,13 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
         }
       // 等待时间后触发消息
       <-time.After(timeToWait)
-      log.Println("發送訊息：請各位同仁整理今日工作項目表，謝謝")
       sendMessage(bot, groupID, "請各位同仁整理今日工作項目表，謝謝", event)
+      log.Printf("發送訊息：請各位同仁整理今日工作項目表，謝謝")
 
+
+      //Check if it's time for the first message
       if now.Hour() >= workMessageHour1 && now.Minute() >= workMessageMinute1 {
+        //Set the target time for the next day
         targetTime1 = targetTime1.Add(24 * time.Hour)
       }
 
@@ -78,10 +67,23 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
       if now.Hour() >= workMessageHour2 && now.Minute() >= workMessageMinute2 {
         //Set the target time for the next day
         targetTime2 = targetTime2.Add(24 * time.Hour)
-
       } 
     }
   }
+}
+
+// 函数用于发送消息
+func sendMessage(bot *linebot.Client, groupID string, message string, event *linebot.Event) error {
+  _, err := bot.PushMessage(groupID, linebot.NewTextMessage(message)).Do()
+  if err != nil {
+    return err
+  }
+  //在发送消息后触发 triggerSumAll
+  time.AfterFunc(10*time.Minute, func() { 
+    log.Printf("10分钟后触发 triggerSumAll with groupID: %s, groupMemberProfile: %s, event: %+v\n", groupID, groupMemberProfile, event)
+    triggerSumAll(groupID, groupMemberProfile, event)
+})
+return nil
 }
 
 // 觸發sumall(在發送pushMessage之後的10分鐘)
@@ -233,7 +235,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
         } else if isGroupEvent(event) {
           // 如果聊天機器人在群組中，開始儲存訊息。
           //紀錄groupID的值
-          log.Printf("func callbackHandler回傳的event: %+v\n", event)
+          log.Printf("func callbackHandler回傳的message: %+v\n", message.Text)
           handleStoreMsg(event, message.Text)
         }
 
