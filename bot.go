@@ -243,7 +243,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
           // 如果聊天機器人在群組中，開始儲存訊息。
           //紀錄groupID的值
           log.Printf("func callbackHandler回傳的message: %+v\n", message.Text)
-          log.Printf("func callbackHandler回傳的event: %+v\n", globalEvent)
+          log.Printf("func callbackHandler回傳的event: %+v\n", globalEvent.Source.GroupID)
           handleStoreMsg(globalEvent, message.Text)
         }
 
