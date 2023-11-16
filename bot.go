@@ -53,8 +53,8 @@ func triggerWorkMessage(bot *linebot.Client, groupID string, workMessageHour1, w
         }
       // 等待时间后触发消息
       <-time.After(timeToWait)
-      sendMessage(bot, groupID, "請各位同仁整理今日工作項目表，謝謝", globalEvent)
-      log.Printf("發送訊息：請各位同仁整理今日工作項目表，謝謝")
+      sendMessage(bot, groupID, "請各位同仁整理今日完成與未完成的工作項目表，謝謝\n\n上課結束的老師務必掃拖教室\n行政同仁掃拖一二樓公共空間、廁所、垃圾淨空\n教室的環境需要一起維護，請大家完成也在群組與我回報，謝謝", globalEvent)
+      log.Printf("發送訊息：請各位同仁整理今日完成與未完成的工作項目表，謝謝\n\n上課結束的老師務必掃拖教室\n行政同仁掃拖一二樓公共空間、廁所、垃圾淨空\n教室的環境需要一起維護，請大家完成也在群組與我回報，謝謝")
 
 
       //Check if it's time for the first message
@@ -243,6 +243,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request, groupMemberProfile 
           // 如果聊天機器人在群組中，開始儲存訊息。
           //紀錄groupID的值
           log.Printf("func callbackHandler回傳的message: %+v\n", message.Text)
+          log.Printf("func callbackHandler回傳的event: %+v\n", globalEvent)
           handleStoreMsg(globalEvent, message.Text)
         }
 
